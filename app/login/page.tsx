@@ -29,9 +29,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const loginResponse = await api.post<LoginResponse>("/auth/login", {
-        email_or_username: emailOrUsername,
-        password,
+      const formData = new URLSearchParams();
+      formData.append("username", emailOrUsername);
+      formData.append("password", password);
+
+      const loginResponse = await api.post<LoginResponse>("/auth/login", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       });
 
       saveAdminToken(loginResponse.data.access_token);
