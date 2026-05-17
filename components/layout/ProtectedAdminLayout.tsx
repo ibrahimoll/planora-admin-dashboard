@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { AdminTopbar } from "@/components/layout/AdminTopbar";
+import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
 
 type CurrentUser = {
   user_id: number;
@@ -51,14 +52,10 @@ export function ProtectedAdminLayout({ children }: { children: ReactNode }) {
 
   if (checking) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#050712] text-white">
-        <div className="rounded-3xl border border-cyan-300/20 bg-white/[0.07] px-8 py-6 shadow-xl shadow-cyan-500/10 backdrop-blur-xl">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-            Planora
-          </p>
-          <h1 className="mt-3 text-2xl font-bold">Verifying admin access...</h1>
-        </div>
-      </main>
+      <PlanoraLoader
+        label="Planora Admin Core"
+        detail="Verifying admin access..."
+      />
     );
   }
 

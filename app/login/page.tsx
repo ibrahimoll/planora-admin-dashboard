@@ -1,12 +1,14 @@
 "use client";
 
-import { api } from "@/lib/api";
-import { clearAdminToken, getAdminToken, saveAdminToken } from "@/lib/auth";
-import axios from "axios";
-import { motion } from "framer-motion";
+import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminAuthShell } from "@/components/auth/AdminAuthShell";
+import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
+import { api } from "@/lib/api";
+import { getLoginErrorMessage } from "@/lib/auth-errors";
+import { clearAdminToken, getAdminToken, saveAdminToken } from "@/lib/auth";
 
 type LoginResponse = {
   access_token: string;
@@ -18,47 +20,6 @@ type CurrentUser = {
   is_active?: boolean;
   is_email_verified?: boolean;
 };
-
-function getBackendDetail(data: unknown) {
-  if (typeof data === "string") return data;
-
-  if (data && typeof data === "object" && "detail" in data) {
-    const detail = (data as { detail?: unknown }).detail;
-
-    if (typeof detail === "string") return detail;
-
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          if (typeof item === "string") return item;
-          if (item && typeof item === "object" && "msg" in item) {
-            return String((item as { msg?: unknown }).msg ?? "");
-          }
-          return "";
-        })
-        .filter(Boolean)
-        .join(" ");
-    }
-  }
-
-  return "";
-}
-
-function getLoginErrorMessage(error: unknown) {
-  if (!axios.isAxiosError(error) || !error.response) {
-    return "Backend is offline or unreachable.";
-  }
-
-  if (error.response.status === 401) {
-    return "Invalid username/email or password.";
-  }
-
-  if (error.response.status === 403) {
-    return getBackendDetail(error.response.data) || "Access denied.";
-  }
-
-  return "Unable to sign in right now.";
-}
 
 function isActiveAdmin(user: CurrentUser) {
   return (
@@ -178,113 +139,94 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <main className="min-h-screen overflow-hidden bg-[#060812] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,255,255,0.22),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.22),transparent_30%)]" />
-
-        <section className="relative z-10 flex min-h-screen items-center justify-center px-6">
-          <div className="w-full max-w-md rounded-3xl border border-cyan-400/20 bg-white/8 p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
-            <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-              Planora Admin
-            </p>
-            <h1 className="mt-3 text-2xl font-bold">
-              Checking admin session...
-            </h1>
-          </div>
-        </section>
-      </main>
+      <PlanoraLoader
+        label="Planora Admin Core"
+        detail="Checking admin session..."
+      />
     );
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#060812] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,255,255,0.22),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.22),transparent_30%)]" />
+    <AdminAuthShell
+      eyebrow="AI Project Control Dashboard"
+      title="Planora Admin Portal"
+      subtitle="Secure system monitoring and project intelligence for Planora administrators."
+    >
+      <form onSubmit={handleLogin} className="space-y-5" noValidate>
+        <div>
+          <label
+            htmlFor="admin-login-identifier"
+            className="text-sm text-slate-300"
+          >
+            Email or username
+          </label>
+          <input
+            id="admin-login-identifier"
+            value={emailOrUsername}
+            onChange={(event) => setEmailOrUsername(event.target.value)}
+            autoComplete="username"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "admin-login-error" : undefined}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+            placeholder="admin@planora.ai"
+          />
+        </div>
 
-      <section className="relative z-10 flex min-h-screen items-center justify-center px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md rounded-3xl border border-cyan-400/20 bg-white/8 p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl"
-        >
-          <div className="mb-8">
-            <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-              Planora Admin
-            </p>
-            <h1 className="mt-3 text-3xl font-bold">Operations Center</h1>
-            <p className="mt-3 text-sm text-slate-400">
-              Secure access for system administrators only.
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5" noValidate>
-            <div>
-              <label
-                htmlFor="admin-login-identifier"
-                className="text-sm text-slate-300"
-              >
-                Email or username
-              </label>
-              <input
-                id="admin-login-identifier"
-                value={emailOrUsername}
-                onChange={(event) => setEmailOrUsername(event.target.value)}
-                autoComplete="username"
-                aria-invalid={Boolean(error)}
-                aria-describedby={error ? "admin-login-error" : undefined}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-cyan-300"
-                placeholder="admin@planora.ai"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="admin-login-password"
-                className="text-sm text-slate-300"
-              >
-                Password
-              </label>
-              <div className="relative mt-2">
-                <input
-                  id="admin-login-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  aria-invalid={Boolean(error)}
-                  aria-describedby={error ? "admin-login-error" : undefined}
-                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 pr-14 text-white outline-none transition focus:border-cyan-300"
-                  placeholder="********"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100 transition hover:bg-cyan-300/20"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p
-                id="admin-login-error"
-                role="alert"
-                className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-              >
-                {error}
-              </p>
-            )}
-
-            <button
-              disabled={loading}
-              className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <label
+              htmlFor="admin-login-password"
+              className="text-sm text-slate-300"
             >
-              {loading ? "Authenticating..." : "Enter Command Center"}
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-cyan-200 transition hover:text-white"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <div className="relative mt-2">
+            <input
+              id="admin-login-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "admin-login-error" : undefined}
+              className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 pr-14 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+              placeholder="********"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100 transition hover:bg-cyan-300/20"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-          </form>
-        </motion.div>
-      </section>
-    </main>
+          </div>
+        </div>
+
+        {error && (
+          <p
+            id="admin-login-error"
+            role="alert"
+            className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          >
+            {error}
+          </p>
+        )}
+
+        <button
+          disabled={loading}
+          className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Authenticating admin..." : "Access Admin Dashboard"}
+        </button>
+      </form>
+    </AdminAuthShell>
   );
 }

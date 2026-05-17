@@ -29,12 +29,15 @@ api.interceptors.response.use(
     if (typeof window !== "undefined" && axios.isAxiosError(error)) {
       const status = error.response?.status;
       const requestUrl = error.config?.url ?? "";
-      const isLoginRequest = requestUrl.includes("/auth/login");
+      const isPublicAuthRequest =
+        requestUrl.includes("/auth/login") ||
+        requestUrl.includes("/auth/forgot-password") ||
+        requestUrl.includes("/auth/reset-password");
       const isLoginPage = window.location.pathname === "/login";
 
       if (
         (status === 401 || status === 403) &&
-        !isLoginRequest &&
+        !isPublicAuthRequest &&
         !isLoginPage
       ) {
         clearAdminToken();
