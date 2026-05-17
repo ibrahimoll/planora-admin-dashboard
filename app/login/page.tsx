@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 import { saveAdminToken } from "@/lib/auth";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type LoginResponse = {
   access_token: string;
@@ -33,11 +33,15 @@ export default function LoginPage() {
       formData.append("username", emailOrUsername);
       formData.append("password", password);
 
-      const loginResponse = await api.post<LoginResponse>("/auth/login", formData, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+      const loginResponse = await api.post<LoginResponse>(
+        "/auth/login",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         },
-      });
+      );
 
       saveAdminToken(loginResponse.data.access_token);
 
@@ -51,7 +55,9 @@ export default function LoginPage() {
 
       router.push("/dashboard");
     } catch {
-      setError("Invalid credentials, unverified account, or backend is offline.");
+      setError(
+        "Invalid credentials, unverified account, or backend is offline.",
+      );
     } finally {
       setLoading(false);
     }
