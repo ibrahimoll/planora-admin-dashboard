@@ -550,7 +550,7 @@ export default function AdminProjectsPage() {
       )}
 
       <Reveal delay={0.06}>
-        <section className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <section className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:items-start">
           <GlassCard>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -768,8 +768,7 @@ export default function AdminProjectsPage() {
               )}
             </div>
           </GlassCard>
-
-          <GlassCard className="2xl:sticky 2xl:top-24 2xl:self-start">
+          <GlassCard className="min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
