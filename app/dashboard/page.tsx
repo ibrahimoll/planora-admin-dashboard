@@ -13,20 +13,33 @@ import type {
   AdminTaskStats,
   AdminUserStats,
 } from "@/types/admin";
-import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   AlertTriangle,
   Bell,
+  CalendarClock,
   CheckCircle2,
   Clock3,
   FolderKanban,
   ListChecks,
   ShieldCheck,
+  TimerReset,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const emptyUsers: AdminUserStats = {
   total_users: 0,
@@ -85,35 +98,45 @@ const toneMap = {
     text: "text-teal-200",
     bg: "bg-teal-500/10",
     border: "border-teal-500/20",
-    bar: "bg-teal-400",
   },
   purple: {
     text: "text-violet-200",
     bg: "bg-violet-500/10",
     border: "border-violet-500/20",
-    bar: "bg-violet-400",
   },
   emerald: {
     text: "text-emerald-200",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/20",
-    bar: "bg-emerald-400",
   },
   amber: {
     text: "text-amber-200",
     bg: "bg-amber-500/10",
     border: "border-amber-500/20",
-    bar: "bg-amber-400",
   },
   rose: {
     text: "text-rose-200",
     bg: "bg-rose-500/10",
     border: "border-rose-500/20",
-    bar: "bg-rose-400",
   },
 };
 
 type Tone = keyof typeof toneMap;
+
+type ChartPoint = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+type TooltipPayload = {
+  value?: number;
+  name?: string;
+  payload?: {
+    label?: string;
+    value?: number;
+  };
+};
 
 function formatCount(value: number | undefined) {
   return (value ?? 0).toLocaleString();
@@ -151,41 +174,194 @@ function normalizeOverview(data: Partial<AdminDashboardOverview>) {
   };
 }
 
-function ProgressRow({
+function getChartTotal(data: ChartPoint[]) {
+  return data.reduce((sum, item) => sum + item.value, 0);
+}
+
+function ChartTooltip({
+  active,
+  payload,
   label,
-  value,
-  total,
-  tone = "cyan",
-  compact = false,
 }: {
-  label: string;
-  value: number;
-  total: number;
-  tone?: Tone;
-  compact?: boolean;
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
 }) {
-  const styles = toneMap[tone];
-  const percent = getRate(value, total);
-  const visualPercent = compact ? Math.min(percent, 52) : percent;
+  if (!active || !payload?.length) return null;
+
+  const firstItem = payload[0];
+  const itemLabel = firstItem.payload?.label || firstItem.name || label || "";
+  const value = firstItem.value ?? firstItem.payload?.value ?? 0;
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-4 text-sm">
-        <span className="text-slate-300">{label}</span>
-        <span className={`font-semibold ${styles.text}`}>
-          {formatCount(value)} ({percent}%)
-        </span>
+    <div className="rounded-xl border border-slate-700 bg-slate-950/95 px-3 py-2 text-sm shadow-xl shadow-black/30">
+      <p className="font-semibold text-white">{itemLabel}</p>
+      <p className="mt-1 text-slate-400">
+        Count: <span className="font-semibold text-teal-200">{value}</span>
+      </p>
+    </div>
+  );
+}
+
+function ChartLegend({ data }: { data: ChartPoint[] }) {
+  return (
+    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      {data.map((item) => (
+        <div
+          key={item.label}
+          className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/35 px-3 py-2"
+        >
+          <span className="flex min-w-0 items-center gap-2 text-sm text-slate-300">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="truncate">{item.label}</span>
+          </span>
+
+          <span className="font-semibold text-white">
+            {formatCount(item.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChartCard({
+  title,
+  eyebrow,
+  description,
+  children,
+}: {
+  title: string;
+  eyebrow: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <GlassCard>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+          {eyebrow}
+        </p>
+        <h2 className="mt-2 text-2xl font-bold text-white">{title}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
       </div>
 
-      <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${visualPercent}%` }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-          className={`h-full rounded-full ${styles.bar}`}
-        />
+      <div className="mt-6">{children}</div>
+    </GlassCard>
+  );
+}
+
+function DonutChartBlock({
+  data,
+  centerLabel,
+  centerValue,
+}: {
+  data: ChartPoint[];
+  centerLabel: string;
+  centerValue: string;
+}) {
+  const visibleData = data.filter((item) => item.value > 0);
+  const total = getChartTotal(data);
+
+  if (total === 0) {
+    return (
+      <div className="flex h-[260px] items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/35 text-sm text-slate-500">
+        No chart data yet.
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="relative h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Tooltip content={<ChartTooltip />} />
+            <Pie
+              data={visibleData}
+              dataKey="value"
+              nameKey="label"
+              innerRadius="58%"
+              outerRadius="82%"
+              paddingAngle={3}
+              stroke="#0f172a"
+              strokeWidth={4}
+            >
+              {visibleData.map((entry) => (
+                <Cell key={entry.label} fill={entry.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-3xl font-bold text-white">{centerValue}</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {centerLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <ChartLegend data={data} />
+    </>
+  );
+}
+
+function BarChartBlock({ data }: { data: ChartPoint[] }) {
+  const total = getChartTotal(data);
+
+  if (total === 0) {
+    return (
+      <div className="flex h-[260px] items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/35 text-sm text-slate-500">
+        No chart data yet.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 8, right: 8, left: -24, bottom: 0 }}
+            barCategoryGap="28%"
+          >
+            <CartesianGrid
+              stroke="#1e293b"
+              strokeDasharray="4 4"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fill: "#64748b", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip cursor={{ fill: "rgba(15, 23, 42, 0.55)" }} content={<ChartTooltip />} />
+            <Bar dataKey="value" radius={[9, 9, 0, 0]}>
+              {data.map((entry) => (
+                <Cell key={entry.label} fill={entry.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <ChartLegend data={data} />
+    </>
   );
 }
 
@@ -223,6 +399,44 @@ function DataTile({
 
       <p className="mt-3 text-sm leading-6 text-slate-400">{detail}</p>
     </div>
+  );
+}
+
+function CompactStatusCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone = "cyan",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: LucideIcon;
+  tone?: Tone;
+}) {
+  const styles = toneMap[tone];
+
+  return (
+    <GlassCard className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            {label}
+          </p>
+          <p className={`mt-2 truncate text-xl font-bold ${styles.text}`}>
+            {value}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-400">{detail}</p>
+        </div>
+
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.border} ${styles.bg} ${styles.text}`}
+        >
+          <Icon size={18} />
+        </div>
+      </div>
+    </GlassCard>
   );
 }
 
@@ -275,14 +489,102 @@ export default function DashboardPage() {
   }, []);
 
   const { users, projects, tasks, risks, notifications } = overview;
+
   const riskTone: Tone =
     risks.high_risk_records > 0 || tasks.blocked_tasks > 0
       ? "rose"
       : risks.medium_risk_records > 0 || tasks.overdue_tasks > 0
         ? "amber"
         : "emerald";
+
+  const overdueTone: Tone = tasks.overdue_tasks > 0 ? "rose" : "emerald";
+  const blockedTone: Tone = tasks.blocked_tasks > 0 ? "amber" : "emerald";
+
   const openProjectCount =
     projects.in_progress_projects + projects.not_started_projects;
+
+  const projectStatusData = useMemo<ChartPoint[]>(
+    () => [
+      {
+        label: "Not started",
+        value: projects.not_started_projects,
+        color: "#64748b",
+      },
+      {
+        label: "In progress",
+        value: projects.in_progress_projects,
+        color: "#14b8a6",
+      },
+      {
+        label: "On hold",
+        value: projects.on_hold_projects,
+        color: "#f59e0b",
+      },
+      {
+        label: "Completed",
+        value: projects.completed_projects,
+        color: "#10b981",
+      },
+      {
+        label: "Cancelled",
+        value: projects.cancelled_projects,
+        color: "#fb7185",
+      },
+    ],
+    [projects],
+  );
+
+  const taskStatusData = useMemo<ChartPoint[]>(
+    () => [
+      {
+        label: "To do",
+        value: tasks.todo_tasks,
+        color: "#14b8a6",
+      },
+      {
+        label: "In progress",
+        value: tasks.in_progress_tasks,
+        color: "#38bdf8",
+      },
+      {
+        label: "Completed",
+        value: tasks.completed_tasks,
+        color: "#10b981",
+      },
+      {
+        label: "Blocked",
+        value: tasks.blocked_tasks,
+        color: "#fb7185",
+      },
+      {
+        label: "Overdue",
+        value: tasks.overdue_tasks,
+        color: "#f43f5e",
+      },
+    ],
+    [tasks],
+  );
+
+  const riskData = useMemo<ChartPoint[]>(
+    () => [
+      {
+        label: "Low",
+        value: risks.low_risk_records,
+        color: "#10b981",
+      },
+      {
+        label: "Medium",
+        value: risks.medium_risk_records,
+        color: "#f59e0b",
+      },
+      {
+        label: "High",
+        value: risks.high_risk_records,
+        color: "#fb7185",
+      },
+    ],
+    [risks],
+  );
 
   return (
     <PageTransition className="space-y-6 pb-10">
@@ -313,71 +615,6 @@ export default function DashboardPage() {
         }
       `}</style>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GlassCard className="p-0">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0">
-                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                  <Activity size={15} />
-                  System overview
-                </p>
-                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                  Project operations overview
-                </h1>
-                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
-                  A current admin summary from Planora data: users, projects,
-                  tasks, risk records, and recent activity.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                  Last updated
-                </p>
-                <p className="mt-1 font-semibold text-white">
-                  {loading
-                    ? "Loading..."
-                    : formatDateTime(overview.generated_at)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard glow={riskTone}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Risk status
-              </p>
-              <h2
-                className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}
-              >
-                {loading
-                  ? "--"
-                  : risks.high_risk_records > 0
-                    ? "Needs review"
-                    : tasks.overdue_tasks > 0 || tasks.blocked_tasks > 0
-                      ? "Work needs attention"
-                      : "Stable"}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-400">
-                {formatCount(risks.high_risk_records)} high-risk records,{" "}
-                {formatCount(tasks.blocked_tasks)} blocked tasks, and{" "}
-                {formatCount(tasks.overdue_tasks)} overdue tasks.
-              </p>
-            </div>
-
-            <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}
-            >
-              <AlertTriangle size={22} />
-            </div>
-          </div>
-        </GlassCard>
-      </section>
-
       {error && (
         <GlassCard className="border-amber-500/20 bg-amber-500/10" glow="rose">
           <div className="flex items-center gap-3 text-amber-100">
@@ -388,6 +625,40 @@ export default function DashboardPage() {
       )}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <CompactStatusCard
+          label="Last updated"
+          value={loading ? "Loading..." : formatDateTime(overview.generated_at)}
+          detail="Latest admin overview sync."
+          icon={CalendarClock}
+          tone="cyan"
+        />
+
+        <CompactStatusCard
+          label="Overdue tasks"
+          value={loading ? "--" : formatCount(tasks.overdue_tasks)}
+          detail="Tasks past due date."
+          icon={TimerReset}
+          tone={overdueTone}
+        />
+
+        <CompactStatusCard
+          label="Blocked tasks"
+          value={loading ? "--" : formatCount(tasks.blocked_tasks)}
+          detail="Work currently blocked."
+          icon={AlertTriangle}
+          tone={blockedTone}
+        />
+
+        <CompactStatusCard
+          label="High risk"
+          value={loading ? "--" : formatCount(risks.high_risk_records)}
+          detail="Risk records needing review."
+          icon={AlertTriangle}
+          tone={riskTone}
+        />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
         <StatCard
           title="Users"
           value={loading ? "--" : formatCount(users.total_users)}
@@ -426,143 +697,45 @@ export default function DashboardPage() {
           accent="emerald"
           signal={`${formatCount(tasks.blocked_tasks)} blocked`}
         />
-
-        <StatCard
-          title="Risk"
-          value={loading ? "--" : formatCount(risks.total_risk_records)}
-          detail={
-            loading
-              ? "Loading project data..."
-              : `${formatCount(risks.high_risk_records)} high risk`
-          }
-          icon={AlertTriangle}
-          accent={riskTone}
-          signal={`${formatCount(risks.medium_risk_records)} medium`}
-        />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
-        <GlassCard>
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-              Project progress
-            </p>
-            <h2 className="text-2xl font-bold text-white">Project progress</h2>
-            <p className="text-sm leading-6 text-slate-400">
-              The bars below use the current overview endpoint. Empty values
-              mean the backend has no records for that status yet.
-            </p>
-          </div>
+      <section className="grid gap-6 xl:grid-cols-3">
+        <ChartCard
+          eyebrow="Portfolio"
+          title="Project status"
+          description="Distribution of projects across delivery states."
+        >
+          <DonutChartBlock
+            data={projectStatusData}
+            centerLabel="Projects"
+            centerValue={loading ? "--" : formatCount(projects.total_projects)}
+          />
+        </ChartCard>
 
-          <div className="mt-6 space-y-5">
-            <ProgressRow
-              label="In progress"
-              value={projects.in_progress_projects}
-              total={projects.total_projects}
-            />
-            <ProgressRow
-              label="Completed"
-              value={projects.completed_projects}
-              total={projects.total_projects}
-              tone="emerald"
-            />
-            <ProgressRow
-              label="On hold"
-              value={projects.on_hold_projects}
-              total={projects.total_projects}
-              tone="amber"
-            />
-            <ProgressRow
-              label="Cancelled"
-              value={projects.cancelled_projects}
-              total={projects.total_projects}
-              tone="rose"
-              compact
-            />
-          </div>
-        </GlassCard>
+        <ChartCard
+          eyebrow="Tasks"
+          title="Task workload"
+          description="Task status volume, including blocked and overdue work."
+        >
+          <BarChartBlock data={taskStatusData} />
+        </ChartCard>
 
-        <GlassCard>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                System status
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">
-                Admin data health
-              </h2>
-            </div>
-            <ShieldCheck size={22} className="text-teal-300" />
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <DataTile
-              label="Email verified"
-              value={loading ? "--" : formatCount(users.verified_users)}
-              detail={`${formatCount(users.unverified_users)} users are not verified.`}
-              icon={CheckCircle2}
-              tone="emerald"
-            />
-            <DataTile
-              label="Teams"
-              value={loading ? "--" : formatCount(overview.teams_total)}
-              detail="Total teams tracked by the admin backend."
-              icon={Users}
-              tone="cyan"
-            />
-            <DataTile
-              label="Unread notices"
-              value={
-                loading ? "--" : formatCount(notifications.unread_notifications)
-              }
-              detail={`${formatCount(notifications.total_notifications)} notifications in total.`}
-              icon={Bell}
-              tone="cyan"
-            />
-          </div>
-        </GlassCard>
+        <ChartCard
+          eyebrow="Risk"
+          title="Risk distribution"
+          description="Low, medium, and high-risk records in the system."
+        >
+          <DonutChartBlock
+            data={riskData}
+            centerLabel="Risk records"
+            centerValue={
+              loading ? "--" : formatCount(risks.total_risk_records)
+            }
+          />
+        </ChartCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)]">
-        <GlassCard className="h-[460px]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-              Task progress
-            </p>
-            <h2 className="mt-2 text-2xl font-bold text-white">
-              Work status by task count
-            </h2>
-          </div>
-
-          <div className="mt-6 space-y-5">
-            <ProgressRow
-              label="To do"
-              value={tasks.todo_tasks}
-              total={tasks.total_tasks}
-              tone="cyan"
-            />
-            <ProgressRow
-              label="In progress"
-              value={tasks.in_progress_tasks}
-              total={tasks.total_tasks}
-              tone="cyan"
-            />
-            <ProgressRow
-              label="Completed"
-              value={tasks.completed_tasks}
-              total={tasks.total_tasks}
-              tone="emerald"
-            />
-            <ProgressRow
-              label="Blocked"
-              value={tasks.blocked_tasks}
-              total={tasks.total_tasks}
-              tone="rose"
-              compact
-            />
-          </div>
-        </GlassCard>
-
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
         <GlassCard glow={riskTone} className="flex h-[460px] flex-col">
           <div className="shrink-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
@@ -609,6 +782,48 @@ export default function DashboardPage() {
                 {activityError || "No recent activity yet."}
               </div>
             )}
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                System status
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                Admin data health
+              </h2>
+            </div>
+            <ShieldCheck size={22} className="text-teal-300" />
+          </div>
+
+          <div className="mt-6 grid gap-3">
+            <DataTile
+              label="Email verified"
+              value={loading ? "--" : formatCount(users.verified_users)}
+              detail={`${formatCount(users.unverified_users)} users are not verified.`}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+
+            <DataTile
+              label="Teams"
+              value={loading ? "--" : formatCount(overview.teams_total)}
+              detail="Total teams tracked by the admin backend."
+              icon={Users}
+              tone="cyan"
+            />
+
+            <DataTile
+              label="Unread notices"
+              value={
+                loading ? "--" : formatCount(notifications.unread_notifications)
+              }
+              detail={`${formatCount(notifications.total_notifications)} notifications in total.`}
+              icon={Bell}
+              tone="cyan"
+            />
           </div>
         </GlassCard>
       </section>
