@@ -37,8 +37,19 @@ type ApiError = {
   };
 };
 
-const statusOptions: Array<{ label: string; value: StatusFilter }> = [
+const statusFilterOptions: Array<{ label: string; value: StatusFilter }> = [
   { label: "All status", value: "all" },
+  { label: "Not started", value: "not_started" },
+  { label: "In progress", value: "in_progress" },
+  { label: "Completed", value: "completed" },
+  { label: "On hold", value: "on_hold" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+const projectStatusOptions: Array<{
+  label: string;
+  value: AdminProjectStatus;
+}> = [
   { label: "Not started", value: "not_started" },
   { label: "In progress", value: "in_progress" },
   { label: "Completed", value: "completed" },
@@ -83,25 +94,30 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function clampPercent(value: number) {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
 function isOverdue(deadline: string, status: AdminProjectStatus) {
   return status !== "completed" && new Date(deadline).getTime() < Date.now();
 }
 
-function getRiskTone(project: AdminProjectSummary | AdminProjectDetail) {
+function getRiskClasses(project: AdminProjectSummary | AdminProjectDetail) {
   const risk = project.latest_risk?.risk_level;
 
-  if (risk === "high") return "text-rose-200 border-rose-500/20 bg-rose-500/10";
+  if (risk === "high") return "border-rose-500/20 bg-rose-500/10 text-rose-200";
   if (risk === "medium") {
-    return "text-amber-200 border-amber-500/20 bg-amber-500/10";
+    return "border-amber-500/20 bg-amber-500/10 text-amber-200";
   }
   if (risk === "low") {
-    return "text-emerald-200 border-emerald-500/20 bg-emerald-500/10";
+    return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
   }
 
-  return "text-slate-300 border-slate-700 bg-slate-900/70";
+  return "border-slate-700 bg-slate-900/70 text-slate-300";
 }
 
-function StatusPill({ status }: { status: AdminProjectStatus }) {
+function getStatusClasses(status: AdminProjectStatus) {
   const classes: Record<AdminProjectStatus, string> = {
     not_started: "border-slate-700 bg-slate-900/70 text-slate-300",
     in_progress: "border-teal-500/20 bg-teal-500/10 text-teal-200",
@@ -110,9 +126,15 @@ function StatusPill({ status }: { status: AdminProjectStatus }) {
     cancelled: "border-rose-500/20 bg-rose-500/10 text-rose-200",
   };
 
+  return classes[status];
+}
+
+function StatusPill({ status }: { status: AdminProjectStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${classes[status]}`}
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(
+        status,
+      )}`}
     >
       {statusLabels[status]}
     </span>
@@ -144,6 +166,26 @@ function FilterButton<T extends string>({
     >
       {label}
     </button>
+  );
+}
+
+function ProjectProgress({ value }: { value: number }) {
+  const percent = clampPercent(value);
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-sm">
+        <span className="text-slate-400">Progress</span>
+        <span className="font-semibold text-white">{percent}%</span>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+        <div
+          className="h-full rounded-full bg-teal-400 transition-all"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -195,12 +237,14 @@ export default function AdminProjectsPage() {
 
     setSelectedProjectId((current) => {
       if (response.data.length === 0) return null;
+
       if (
         current &&
         response.data.some((project) => project.project_id === current)
       ) {
         return current;
       }
+
       return response.data[0].project_id;
     });
   }
@@ -355,8 +399,8 @@ export default function AdminProjectsPage() {
                     Admin projects
                   </h1>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Review project ownership, deadlines, task progress, and risk
-                    signals across Planora.
+                    Review ownership, deadlines, task progress, and risk signals
+                    across Planora projects.
                   </p>
                 </div>
 
@@ -382,7 +426,7 @@ export default function AdminProjectsPage() {
                   Project oversight
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-300">
-                  Status changes are recorded through the protected admin API.
+                  Status changes are sent through the protected admin API.
                 </p>
               </div>
             </div>
@@ -448,16 +492,16 @@ export default function AdminProjectsPage() {
       )}
 
       <Reveal delay={0.08}>
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
           <GlassCard>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-                    Project management
+                    Project portfolio
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">
-                    Project list
+                    Project cards
                   </h2>
                 </div>
 
@@ -474,7 +518,7 @@ export default function AdminProjectsPage() {
 
               <div className="grid gap-3 border-y border-slate-800 py-4 lg:grid-cols-2">
                 <div className="flex flex-wrap gap-2">
-                  {statusOptions.map((option) => (
+                  {statusFilterOptions.map((option) => (
                     <FilterButton
                       key={option.value}
                       label={option.label}
@@ -484,6 +528,7 @@ export default function AdminProjectsPage() {
                     />
                   ))}
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {typeOptions.map((option) => (
                     <FilterButton
@@ -497,113 +542,106 @@ export default function AdminProjectsPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
-                <div className="hidden grid-cols-[1.3fr_0.9fr_0.8fr_0.9fr_0.8fr] border-b border-slate-800 bg-slate-900/80 px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
-                  <span>Project</span>
-                  <span>Owner</span>
-                  <span>Status</span>
-                  <span>Deadline</span>
-                  <span className="text-right">Progress</span>
+              {loadingProjects ? (
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-60 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
+                    />
+                  ))}
                 </div>
-
-                {loadingProjects ? (
-                  <div className="space-y-3 p-5">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
-                      />
-                    ))}
+              ) : projects.length === 0 ? (
+                <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/35 p-8 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
+                    <FolderKanban size={24} />
                   </div>
-                ) : projects.length === 0 ? (
-                  <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                      <FolderKanban size={24} />
-                    </div>
-                    <h3 className="mt-4 text-xl font-bold text-white">
-                      No projects matched
-                    </h3>
-                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                      Adjust the search or filters to show more projects.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-800">
-                    {projects.map((project) => {
-                      const selected =
-                        selectedProjectId === project.project_id;
-                      const overdue = isOverdue(
-                        project.deadline,
-                        project.status,
-                      );
+                  <h3 className="mt-4 text-xl font-bold text-white">
+                    No projects matched
+                  </h3>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                    Adjust the search or filters to show more projects.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {projects.map((project) => {
+                    const selected = selectedProjectId === project.project_id;
+                    const overdue = isOverdue(project.deadline, project.status);
+                    const progress = clampPercent(
+                      project.task_stats.completion_percentage,
+                    );
 
-                      return (
-                        <button
-                          key={project.project_id}
-                          type="button"
-                          onClick={() => setSelectedProjectId(project.project_id)}
-                          className={`grid w-full gap-4 p-4 text-left transition lg:grid-cols-[1.3fr_0.9fr_0.8fr_0.9fr_0.8fr] lg:items-center lg:px-5 ${
-                            selected
-                              ? "bg-teal-500/[0.08]"
-                              : "hover:bg-slate-900/60"
-                          }`}
-                        >
+                    return (
+                      <button
+                        key={project.project_id}
+                        type="button"
+                        onClick={() => setSelectedProjectId(project.project_id)}
+                        className={`rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 ${
+                          selected
+                            ? "border-teal-500/40 bg-teal-500/10"
+                            : "border-slate-800 bg-slate-950/35 hover:border-teal-500/25 hover:bg-slate-900/70"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <p className="truncate font-semibold text-white">
+                            <p className="truncate text-lg font-semibold text-white">
                               {project.title}
                             </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-xs capitalize text-slate-300">
-                                {project.project_type}
-                              </span>
-                              <span
-                                className={`rounded-full border px-3 py-1 text-xs ${getRiskTone(project)}`}
-                              >
-                                {project.latest_risk
-                                  ? `${project.latest_risk.risk_level} risk`
-                                  : "No risk record"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="min-w-0 text-sm">
-                            <p className="truncate text-white">
-                              {project.owner.full_name || project.owner.username}
-                            </p>
-                            <p className="truncate text-slate-500">
-                              {project.owner.email}
+                            <p className="mt-1 truncate text-sm text-slate-400">
+                              Owner:{" "}
+                              {project.owner.full_name ||
+                                project.owner.username}
                             </p>
                           </div>
 
+                          <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-xs capitalize text-slate-300">
+                            {project.project_type}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
                           <StatusPill status={project.status} />
-
-                          <div
-                            className={`text-sm ${
-                              overdue ? "text-rose-200" : "text-slate-300"
-                            }`}
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs ${getRiskClasses(
+                              project,
+                            )}`}
                           >
-                            <span className="lg:hidden">Deadline </span>
-                            {formatDate(project.deadline)}
+                            {project.latest_risk
+                              ? `${project.latest_risk.risk_level} risk`
+                              : "No risk record"}
+                          </span>
+                        </div>
+
+                        <div className="mt-5">
+                          <ProjectProgress value={progress} />
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-slate-500">Tasks</p>
+                            <p className="mt-1 font-semibold text-white">
+                              {project.task_stats.completed_tasks}/
+                              {project.task_stats.total_tasks}
+                            </p>
                           </div>
 
-                          <div className="text-left lg:text-right">
-                            <p className="text-sm font-semibold text-white">
-                              {Math.round(
-                                project.task_stats.completion_percentage,
-                              )}
-                              %
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {project.task_stats.completed_tasks}/
-                              {project.task_stats.total_tasks} tasks
+                          <div>
+                            <p className="text-slate-500">Deadline</p>
+                            <p
+                              className={`mt-1 font-semibold ${
+                                overdue ? "text-rose-200" : "text-white"
+                              }`}
+                            >
+                              {formatDate(project.deadline)}
                             </p>
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </GlassCard>
 
@@ -645,7 +683,7 @@ export default function AdminProjectsPage() {
                       {selectedProject.project_type}
                     </span>
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs ${getRiskTone(
+                      className={`rounded-full border px-3 py-1 text-xs ${getRiskClasses(
                         selectedProject,
                       )}`}
                     >
@@ -677,7 +715,8 @@ export default function AdminProjectsPage() {
                     <p className="mt-2 font-semibold text-white">
                       {selectedProject.team?.name || "Personal project"}
                     </p>
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="mt-1 flex items-center gap-2 text-sm text-slate-400">
+                      <Users size={15} />
                       {selectedProject.members_count} members
                     </p>
                   </div>
@@ -709,7 +748,7 @@ export default function AdminProjectsPage() {
                         Task progress
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-white">
-                        {Math.round(
+                        {clampPercent(
                           selectedProject.task_stats.completion_percentage,
                         )}
                         %
@@ -718,12 +757,9 @@ export default function AdminProjectsPage() {
                     <ListChecks size={22} className="text-teal-300" />
                   </div>
 
-                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-800">
-                    <div
-                      className="h-full rounded-full bg-teal-400"
-                      style={{
-                        width: `${selectedProject.task_stats.completion_percentage}%`,
-                      }}
+                  <div className="mt-4">
+                    <ProjectProgress
+                      value={selectedProject.task_stats.completion_percentage}
                     />
                   </div>
 
@@ -772,18 +808,11 @@ export default function AdminProjectsPage() {
                       }
                       className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-teal-500"
                     >
-                      {statusOptions
-                        .filter(
-                          (option): option is {
-                            label: string;
-                            value: AdminProjectStatus;
-                          } => option.value !== "all",
-                        )
-                        .map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
+                      {projectStatusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
 
                     <button
