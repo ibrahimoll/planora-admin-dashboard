@@ -1,5 +1,7 @@
 "use client";
 
+import { PageTransition } from "@/components/ui/PageTransition";
+import { Reveal } from "@/components/ui/Reveal";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -278,7 +280,7 @@ export default function DashboardPage() {
     projects.in_progress_projects + projects.not_started_projects;
 
   return (
-    <div className="space-y-6 pb-10">
+    <PageTransition className="space-y-6 pb-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GlassCard className="p-0">
           <div className="p-6 sm:p-8">
@@ -567,6 +569,6 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
       </section>
-    </div>
+    </PageTransition>
   );
 }

@@ -34,13 +34,6 @@ export function AdminTopbar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/dashboard/users"
-            className="hidden items-center gap-2 rounded-xl border border-slate-800 bg-[#111827] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-teal-500/30 hover:text-white sm:flex"
-          >
-            <Users size={17} className="text-teal-300" />
-            Users
-          </Link>
 
           <button
             type="button"

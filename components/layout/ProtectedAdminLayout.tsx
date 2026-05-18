@@ -59,9 +59,9 @@ export function ProtectedAdminLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen">
         <AdminSidebar />
 
-        <section className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <section className="dashboard-scale flex min-h-screen min-w-0 flex-1 flex-col">
           <AdminTopbar />
-          <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+          <div className="flex-1 px-4 py-5 sm:px-5 lg:px-6 xl:px-8">
             {children}
           </div>
         </section>

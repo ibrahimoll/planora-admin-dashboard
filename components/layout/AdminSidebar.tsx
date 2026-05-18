@@ -35,7 +35,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:sticky lg:top-0 lg:block">
+    <aside className="hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:sticky lg:top-0 lg:block">
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-slate-950">

@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { PageTransition } from "@/components/ui/PageTransition";
+import { StatCard } from "@/components/ui/StatCard";
+import { api } from "@/lib/api";
+import type {
+  AdminActivityLog,
+  AdminUser,
+  AdminUserActionResponse,
+  AdminUserDetail,
+} from "@/types/admin";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -20,16 +30,7 @@ import {
   Users,
   UserX,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { api } from "@/lib/api";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { StatCard } from "@/components/ui/StatCard";
-import type {
-  AdminActivityLog,
-  AdminUser,
-  AdminUserActionResponse,
-  AdminUserDetail,
-} from "@/types/admin";
+import { useEffect, useMemo, useState } from "react";
 
 type RoleFilter = "all" | "admin" | "user";
 type StatusFilter = "all" | "active" | "inactive";
@@ -162,7 +163,9 @@ function FilterButton<T extends string>({
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(
+    null,
+  );
   const [activity, setActivity] = useState<AdminActivityLog[]>([]);
   const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin | null>(null);
   const [search, setSearch] = useState("");
@@ -228,7 +231,10 @@ export default function AdminUsersPage() {
         }
         setSelectedUserId((current) => {
           if (response.data.length === 0) return null;
-          if (current && response.data.some((user) => user.user_id === current)) {
+          if (
+            current &&
+            response.data.some((user) => user.user_id === current)
+          ) {
             return current;
           }
           return response.data[0].user_id;
@@ -236,10 +242,7 @@ export default function AdminUsersPage() {
       } catch (requestError) {
         if (!controller.signal.aborted) {
           setError(
-            getApiErrorMessage(
-              requestError,
-              "Unable to load users right now.",
-            ),
+            getApiErrorMessage(requestError, "Unable to load users right now."),
           );
           setUsers([]);
           setSelectedUserId(null);
@@ -355,7 +358,10 @@ export default function AdminUsersPage() {
       setSelectedUser(response.data.user);
     } catch (requestError) {
       setError(
-        getApiErrorMessage(requestError, "Unable to update this user right now."),
+        getApiErrorMessage(
+          requestError,
+          "Unable to update this user right now.",
+        ),
       );
     } finally {
       setActionUserId(null);
@@ -366,7 +372,7 @@ export default function AdminUsersPage() {
     selectedUser && currentAdmin?.user_id === selectedUser.user_id;
 
   return (
-    <div className="space-y-6 pb-10">
+    <PageTransition className="space-y-6 pb-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GlassCard className="p-0">
           <div className="p-6 sm:p-8">
@@ -452,7 +458,9 @@ export default function AdminUsersPage() {
       {(error || notice) && (
         <GlassCard
           className={
-            error ? "border-rose-500/20 bg-rose-500/10" : "border-emerald-500/20 bg-emerald-500/10"
+            error
+              ? "border-rose-500/20 bg-rose-500/10"
+              : "border-emerald-500/20 bg-emerald-500/10"
           }
           glow={error ? "rose" : "cyan"}
         >
@@ -561,7 +569,8 @@ export default function AdminUsersPage() {
                 <div className="divide-y divide-slate-800">
                   {users.map((user) => {
                     const isSelected = selectedUserId === user.user_id;
-                    const isCurrentAdmin = currentAdmin?.user_id === user.user_id;
+                    const isCurrentAdmin =
+                      currentAdmin?.user_id === user.user_id;
                     const actionLoading = actionUserId === user.user_id;
 
                     return (
@@ -816,7 +825,9 @@ export default function AdminUsersPage() {
               <div className="grid gap-3">
                 <button
                   type="button"
-                  disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
+                  disabled={
+                    Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                  }
                   onClick={() =>
                     handleAction(
                       selectedUser,
@@ -829,7 +840,9 @@ export default function AdminUsersPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
+                  disabled={
+                    Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                  }
                   onClick={() =>
                     handleAction(
                       selectedUser,
@@ -853,6 +866,6 @@ export default function AdminUsersPage() {
           )}
         </GlassCard>
       </section>
-    </div>
+    </PageTransition>
   );
 }
