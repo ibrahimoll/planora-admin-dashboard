@@ -240,3 +240,80 @@ export type AdminHighRiskProject = {
   recommendation: string;
   created_at: string;
 };
+
+export type AdminReportProjectSummary = {
+  project_id: number;
+  title: string;
+  description: string | null;
+  status: AdminProjectStatus;
+  project_type: AdminProjectType;
+  deadline: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminReportProgressSummary = {
+  total_tasks: number;
+  completed_tasks: number;
+  pending_tasks: number;
+  overdue_tasks: number;
+  completion_percentage: number;
+};
+
+export type AdminReportTaskStatusCounts = {
+  todo: number;
+  in_progress: number;
+  completed: number;
+  blocked: number;
+};
+
+export type AdminReportTaskPriorityCounts = {
+  low: number;
+  medium: number;
+  high: number;
+};
+
+export type AdminReportHoursSummary = {
+  estimated_hours_total: number;
+  actual_hours_total: number;
+};
+
+export type AdminReportActivitySummary = {
+  comments_count: number;
+  attachments_count: number;
+  deadline_reminders_count: number;
+};
+
+export type AdminReportMemberItem = {
+  user_id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;
+};
+
+export type AdminReportTaskItem = {
+  task_id: number;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  assigned_to: number | null;
+  estimated_hours: number | null;
+  actual_hours: number | null;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type AdminProjectReportResponse = {
+  generated_at: string;
+  project: AdminReportProjectSummary;
+  progress: AdminReportProgressSummary;
+  task_status_counts: AdminReportTaskStatusCounts;
+  task_priority_counts: AdminReportTaskPriorityCounts;
+  hours: AdminReportHoursSummary;
+  activity: AdminReportActivitySummary;
+  members: AdminReportMemberItem[];
+  tasks: AdminReportTaskItem[];
+};
