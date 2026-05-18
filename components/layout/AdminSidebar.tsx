@@ -12,7 +12,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import PlanoraLogo from "../ui/PlanoraLogo";
+import PlanoraLogo from "../PlanoraLogo";
 
 type AdminSidebarProps = {
   desktopOpen: boolean;
@@ -169,20 +169,5 @@ function SidebarContent({
 }
 
 function LogoBlock() {
-  return (
-    <Link href="/dashboard" className="flex items-center gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#082d36]">
-        <div className="flex h-7 w-7 items-center justify-center">
-          <PlanoraLogo />
-        </div>
-      </div>
-
-      <div>
-        <p className="text-xl font-black leading-none text-white">Planora</p>
-        <p className="mt-2 text-sm font-semibold text-[#93b8e8]">
-          Admin dashboard
-        </p>
-      </div>
-    </Link>
-  );
+  return <PlanoraLogo />;
 }
