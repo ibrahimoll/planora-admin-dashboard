@@ -6,6 +6,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   ListChecks,
+  Settings,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -32,6 +33,12 @@ const navItems = [
     label: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
+    ready: true,
+  },
+  {
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
     ready: true,
   },
 ];

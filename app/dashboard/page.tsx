@@ -156,14 +156,17 @@ function ProgressRow({
   value,
   total,
   tone = "cyan",
+  compact = false,
 }: {
   label: string;
   value: number;
   total: number;
   tone?: Tone;
+  compact?: boolean;
 }) {
   const styles = toneMap[tone];
   const percent = getRate(value, total);
+  const visualPercent = compact ? Math.min(percent, 52) : percent;
 
   return (
     <div>
@@ -173,10 +176,11 @@ function ProgressRow({
           {formatCount(value)} ({percent}%)
         </span>
       </div>
+
       <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${percent}%` }}
+          animate={{ width: `${visualPercent}%` }}
           transition={{ duration: 0.55, ease: "easeOut" }}
           className={`h-full rounded-full ${styles.bar}`}
         />
@@ -209,12 +213,14 @@ function DataTile({
           </p>
           <p className="mt-2 text-2xl font-bold text-white">{value}</p>
         </div>
+
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.border} bg-[#080b12] ${styles.text}`}
         >
           <Icon size={18} />
         </div>
       </div>
+
       <p className="mt-3 text-sm leading-6 text-slate-400">{detail}</p>
     </div>
   );
@@ -253,7 +259,7 @@ export default function DashboardPage() {
       try {
         const response = await api.get<AdminActivityLog[]>(
           "/admin/dashboard/recent-activity",
-          { params: { limit: 6 } },
+          { params: { limit: 12 } },
         );
         setActivity(response.data);
       } catch {
@@ -280,6 +286,33 @@ export default function DashboardPage() {
 
   return (
     <PageTransition className="space-y-6 pb-10">
+      <style>{`
+        .dashboard-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #14b8a6 #0f172a;
+        }
+
+        .dashboard-scroll::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+
+        .dashboard-scroll::-webkit-scrollbar-track {
+          background: #0f172a;
+          border-radius: 999px;
+        }
+
+        .dashboard-scroll::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #14b8a6, #0f766e);
+          border-radius: 999px;
+          border: 2px solid #0f172a;
+        }
+
+        .dashboard-scroll::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #2dd4bf, #0d9488);
+        }
+      `}</style>
+
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GlassCard className="p-0">
           <div className="p-6 sm:p-8">
@@ -335,6 +368,7 @@ export default function DashboardPage() {
                 {formatCount(tasks.overdue_tasks)} overdue tasks.
               </p>
             </div>
+
             <div
               className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}
             >
@@ -366,6 +400,7 @@ export default function DashboardPage() {
           accent="cyan"
           signal={`${formatCount(users.admin_users)} admins`}
         />
+
         <StatCard
           title="Projects"
           value={loading ? "--" : formatCount(projects.total_projects)}
@@ -378,6 +413,7 @@ export default function DashboardPage() {
           accent="cyan"
           signal={`${formatCount(openProjectCount)} open`}
         />
+
         <StatCard
           title="Tasks"
           value={loading ? "--" : formatCount(tasks.total_tasks)}
@@ -390,6 +426,7 @@ export default function DashboardPage() {
           accent="emerald"
           signal={`${formatCount(tasks.blocked_tasks)} blocked`}
         />
+
         <StatCard
           title="Risk"
           value={loading ? "--" : formatCount(risks.total_risk_records)}
@@ -440,6 +477,7 @@ export default function DashboardPage() {
               value={projects.cancelled_projects}
               total={projects.total_projects}
               tone="rose"
+              compact
             />
           </div>
         </GlassCard>
@@ -485,8 +523,8 @@ export default function DashboardPage() {
         </GlassCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <GlassCard>
+      <section className="grid gap-6 xl:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)]">
+        <GlassCard className="h-[460px]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Task progress
@@ -520,12 +558,13 @@ export default function DashboardPage() {
               value={tasks.blocked_tasks}
               total={tasks.total_tasks}
               tone="rose"
+              compact
             />
           </div>
         </GlassCard>
 
-        <GlassCard glow={riskTone}>
-          <div>
+        <GlassCard glow={riskTone} className="flex h-[460px] flex-col">
+          <div className="shrink-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Recent activity
             </p>
@@ -534,7 +573,7 @@ export default function DashboardPage() {
             </h2>
           </div>
 
-          <div className="mt-6 space-y-3">
+          <div className="dashboard-scroll mt-6 flex-1 space-y-3 overflow-auto pr-2">
             {activityLoading ? (
               Array.from({ length: 4 }).map((_, index) => (
                 <div
@@ -554,7 +593,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-semibold text-white">
                         {event.event_type.replaceAll("_", " ")}
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">
+                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-400">
                         {event.message}
                       </p>
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">

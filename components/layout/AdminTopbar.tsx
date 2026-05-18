@@ -1,7 +1,8 @@
 "use client";
 
 import { clearAdminToken } from "@/lib/auth";
-import { Bell, LogOut, Search, ShieldCheck } from "lucide-react";
+import { Bell, LogOut, Search, Settings, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const pageTitles: Record<string, string> = {
@@ -11,6 +12,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/tasks": "Tasks",
   "/dashboard/risk": "Risk",
   "/dashboard/reports": "Reports",
+  "/dashboard/settings": "Settings",
 };
 
 function getPageTitle(pathname: string) {
@@ -36,6 +38,10 @@ function getPageTitle(pathname: string) {
 
   if (pathname.startsWith("/dashboard/reports")) {
     return "Reports";
+  }
+
+  if (pathname.startsWith("/dashboard/settings")) {
+    return "Settings";
   }
 
   return "Overview";
@@ -79,6 +85,18 @@ export function AdminTopbar() {
           >
             <Bell size={17} />
           </button>
+
+          <Link
+            href="/dashboard/settings"
+            aria-label="Settings"
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border bg-[#111827] transition ${
+              pathname.startsWith("/dashboard/settings")
+                ? "border-teal-500/30 text-teal-200"
+                : "border-slate-800 text-slate-400 hover:border-teal-500/30 hover:text-white"
+            }`}
+          >
+            <Settings size={17} />
+          </Link>
 
           <div className="hidden items-center gap-2 rounded-xl border border-slate-800 bg-[#111827] px-3 py-2.5 text-sm text-slate-300 xl:flex">
             <ShieldCheck size={17} className="text-emerald-300" />
