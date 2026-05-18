@@ -1,78 +1,114 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
-  BrainCircuit,
+  Bell,
   CheckCircle2,
-  Database,
+  Clock3,
   FolderKanban,
-  Gauge,
   ListChecks,
-  Network,
-  Radar,
   ShieldCheck,
-  Sparkles,
-  TrendingUp,
   Users,
-  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { api } from "@/lib/api";
-import type { AdminOverview } from "@/types/admin";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { StatCard } from "@/components/ui/StatCard";
+import type {
+  AdminActivityLog,
+  AdminDashboardOverview,
+  AdminNotificationStats,
+  AdminProjectStats,
+  AdminRiskStats,
+  AdminTaskStats,
+  AdminUserStats,
+} from "@/types/admin";
 
-const emptyOverview: AdminOverview = {
+const emptyUsers: AdminUserStats = {
   total_users: 0,
   active_users: 0,
-  total_projects: 0,
-  active_projects: 0,
-  total_tasks: 0,
-  completed_tasks: 0,
-  overdue_tasks: 0,
-  high_risk_projects: 0,
+  inactive_users: 0,
+  verified_users: 0,
+  unverified_users: 0,
+  admin_users: 0,
 };
 
-const chartBars = [42, 58, 48, 72, 64, 88, 54, 76, 69, 92, 83, 67];
+const emptyProjects: AdminProjectStats = {
+  total_projects: 0,
+  personal_projects: 0,
+  team_projects: 0,
+  not_started_projects: 0,
+  in_progress_projects: 0,
+  completed_projects: 0,
+  on_hold_projects: 0,
+  cancelled_projects: 0,
+};
+
+const emptyTasks: AdminTaskStats = {
+  total_tasks: 0,
+  todo_tasks: 0,
+  in_progress_tasks: 0,
+  completed_tasks: 0,
+  blocked_tasks: 0,
+  overdue_tasks: 0,
+};
+
+const emptyRisks: AdminRiskStats = {
+  total_risk_records: 0,
+  low_risk_records: 0,
+  medium_risk_records: 0,
+  high_risk_records: 0,
+};
+
+const emptyNotifications: AdminNotificationStats = {
+  total_notifications: 0,
+  unread_notifications: 0,
+  read_notifications: 0,
+};
+
+const emptyOverview: AdminDashboardOverview = {
+  users: emptyUsers,
+  projects: emptyProjects,
+  tasks: emptyTasks,
+  teams_total: 0,
+  risks: emptyRisks,
+  notifications: emptyNotifications,
+  generated_at: "",
+};
 
 const toneMap = {
   cyan: {
     text: "text-cyan-200",
-    bar: "from-cyan-300 to-cyan-500",
     bg: "bg-cyan-300/10",
     border: "border-cyan-300/20",
-    dot: "bg-cyan-300",
+    bar: "bg-cyan-300",
   },
   purple: {
     text: "text-purple-200",
-    bar: "from-purple-300 to-fuchsia-500",
     bg: "bg-purple-300/10",
     border: "border-purple-300/20",
-    dot: "bg-purple-300",
+    bar: "bg-purple-300",
   },
   emerald: {
     text: "text-emerald-200",
-    bar: "from-emerald-300 to-cyan-400",
     bg: "bg-emerald-300/10",
     border: "border-emerald-300/20",
-    dot: "bg-emerald-300",
+    bar: "bg-emerald-300",
   },
   amber: {
     text: "text-amber-200",
-    bar: "from-amber-300 to-orange-400",
     bg: "bg-amber-300/10",
     border: "border-amber-300/20",
-    dot: "bg-amber-300",
+    bar: "bg-amber-300",
   },
   rose: {
     text: "text-rose-200",
-    bar: "from-rose-300 to-red-500",
     bg: "bg-rose-300/10",
     border: "border-rose-300/20",
-    dot: "bg-rose-300",
+    bar: "bg-rose-300",
   },
 };
 
@@ -91,89 +127,117 @@ function formatRate(part: number | undefined, total: number | undefined) {
   return `${getRate(part, total)}%`;
 }
 
-function formatPercent(value: number) {
-  return `${Math.round(value * 10) / 10}%`;
+function formatDateTime(value: string) {
+  if (!value) return "Not available";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
-function MetricBar({
+function normalizeOverview(data: Partial<AdminDashboardOverview>) {
+  return {
+    users: { ...emptyUsers, ...data.users },
+    projects: { ...emptyProjects, ...data.projects },
+    tasks: { ...emptyTasks, ...data.tasks },
+    teams_total: data.teams_total ?? 0,
+    risks: { ...emptyRisks, ...data.risks },
+    notifications: { ...emptyNotifications, ...data.notifications },
+    generated_at: data.generated_at ?? "",
+  };
+}
+
+function ProgressRow({
   label,
   value,
-  detail,
+  total,
   tone = "cyan",
-  loading,
 }: {
   label: string;
   value: number;
-  detail: string;
+  total: number;
   tone?: Tone;
-  loading: boolean;
 }) {
   const styles = toneMap[tone];
+  const percent = getRate(value, total);
 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-4 text-sm">
         <span className="text-slate-300">{label}</span>
         <span className={`font-semibold ${styles.text}`}>
-          {loading ? "--" : detail}
+          {formatCount(value)} ({percent}%)
         </span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-black/45 shadow-inner shadow-black/50">
+      <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: loading ? "0%" : `${value}%` }}
-          transition={{ duration: 0.75, ease: "easeOut" }}
-          className={`h-full rounded-full bg-gradient-to-r ${styles.bar} shadow-[0_0_20px_rgba(34,211,238,0.22)]`}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className={`h-full rounded-full ${styles.bar}`}
         />
       </div>
     </div>
   );
 }
 
-function SignalModule({
+function DataTile({
   label,
   value,
   detail,
-  tone,
   icon: Icon,
+  tone = "cyan",
 }: {
   label: string;
   value: string;
   detail: string;
-  tone: Tone;
   icon: LucideIcon;
+  tone?: Tone;
 }) {
   const styles = toneMap[tone];
 
   return (
-    <div
-      className={`rounded-2xl border ${styles.border} ${styles.bg} p-4 shadow-lg shadow-black/20`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className={`rounded-2xl border ${styles.border} bg-black/30 p-3`}>
-          <Icon size={20} className={styles.text} />
+    <div className={`rounded-2xl border ${styles.border} ${styles.bg} p-4`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {label}
+          </p>
+          <p className="mt-2 text-2xl font-bold text-white">{value}</p>
         </div>
-        <span className={`h-2 w-2 rounded-full ${styles.dot}`} />
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.border} bg-[#080b12] ${styles.text}`}
+        >
+          <Icon size={18} />
+        </div>
       </div>
-      <p className="mt-5 text-xs uppercase tracking-[0.22em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-black text-white">{value}</p>
-      <p className="mt-1 text-xs text-slate-400">{detail}</p>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{detail}</p>
     </div>
   );
 }
 
 export default function DashboardPage() {
-  const [overview, setOverview] = useState<AdminOverview>(emptyOverview);
+  const [overview, setOverview] =
+    useState<AdminDashboardOverview>(emptyOverview);
+  const [activity, setActivity] = useState<AdminActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activityLoading, setActivityLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activityError, setActivityError] = useState("");
 
   useEffect(() => {
     async function loadOverview() {
+      setLoading(true);
+      setError("");
+
       try {
-        const response = await api.get<AdminOverview>("/admin/overview");
-        setOverview({ ...emptyOverview, ...response.data });
+        const response = await api.get<AdminDashboardOverview>(
+          "/admin/dashboard/overview",
+        );
+        setOverview(normalizeOverview(response.data));
       } catch {
         setError("Overview data is unavailable right now.");
       } finally {
@@ -181,212 +245,97 @@ export default function DashboardPage() {
       }
     }
 
+    async function loadRecentActivity() {
+      setActivityLoading(true);
+      setActivityError("");
+
+      try {
+        const response = await api.get<AdminActivityLog[]>(
+          "/admin/dashboard/recent-activity",
+          { params: { limit: 6 } },
+        );
+        setActivity(response.data);
+      } catch {
+        setActivity([]);
+        setActivityError("Recent activity is not available yet.");
+      } finally {
+        setActivityLoading(false);
+      }
+    }
+
     loadOverview();
+    loadRecentActivity();
   }, []);
 
-  const overdueTasks = overview.overdue_tasks ?? 0;
-  const highRiskProjects = overview.high_risk_projects ?? 0;
-  const totalActivity =
-    overview.total_users + overview.total_projects + overview.total_tasks;
-
-  const completionRate = useMemo(
-    () => formatRate(overview.completed_tasks, overview.total_tasks),
-    [overview.completed_tasks, overview.total_tasks],
-  );
-
-  const activeUserRate = useMemo(
-    () => formatRate(overview.active_users, overview.total_users),
-    [overview.active_users, overview.total_users],
-  );
-
-  const activeProjectRate = useMemo(
-    () => formatRate(overview.active_projects, overview.total_projects),
-    [overview.active_projects, overview.total_projects],
-  );
-
-  const completionPercent = getRate(
-    overview.completed_tasks,
-    overview.total_tasks,
-  );
-  const activeUserPercent = getRate(overview.active_users, overview.total_users);
-  const activeProjectPercent = getRate(
-    overview.active_projects,
-    overview.total_projects,
-  );
-  const riskPressure = overview.total_projects
-    ? getRate(highRiskProjects, overview.total_projects)
-    : highRiskProjects > 0
-      ? 100
-      : 0;
-  const delayPressure = overview.total_tasks
-    ? getRate(overdueTasks, overview.total_tasks)
-    : overdueTasks > 0
-      ? 100
-      : 0;
-  const hasOperationalData = totalActivity > 0;
-  const coreHealth = Math.max(
-    0,
-    Math.min(
-      99.8,
-      88 +
-        completionPercent * 0.08 +
-        activeProjectPercent * 0.04 +
-        activeUserPercent * 0.02 -
-        riskPressure * 0.12 -
-        delayPressure * 0.1,
-    ),
-  );
-  const intelligenceSync = Math.max(
-    0,
-    Math.min(100, Math.round((completionPercent + activeProjectPercent) / 2)),
-  );
-
-  const activityEvents = [
-    {
-      label: "Admin guard active",
-      detail: "Protected route check and token guard are online.",
-      tone: "cyan" as Tone,
-      icon: ShieldCheck,
-    },
-    {
-      label: "Project intelligence synced",
-      detail: `${formatCount(overview.active_projects)} active projects in command view.`,
-      tone: "purple" as Tone,
-      icon: BrainCircuit,
-    },
-    {
-      label: "Risk monitor sweep",
-      detail: `${formatCount(highRiskProjects)} high-risk projects and ${formatCount(overdueTasks)} overdue tasks detected.`,
-      tone: highRiskProjects || overdueTasks ? ("rose" as Tone) : ("emerald" as Tone),
-      icon: Radar,
-    },
-    {
-      label: "Task throughput updated",
-      detail: `${completionRate} of tracked tasks are complete.`,
-      tone: "emerald" as Tone,
-      icon: CheckCircle2,
-    },
-  ];
+  const { users, projects, tasks, risks, notifications } = overview;
+  const riskTone: Tone =
+    risks.high_risk_records > 0 || tasks.overdue_tasks > 0
+      ? "rose"
+      : risks.medium_risk_records > 0 || tasks.blocked_tasks > 0
+        ? "amber"
+        : "emerald";
+  const openProjectCount =
+    projects.in_progress_projects + projects.not_started_projects;
 
   return (
     <div className="space-y-6 pb-10">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <GlassCard className="min-h-[21rem] p-0" glow="cyan">
-          <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8">
-            <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(34,211,238,0.13),transparent_45%,rgba(192,132,252,0.11))]" />
-            <div className="absolute inset-x-8 bottom-8 h-px bg-gradient-to-r from-cyan-300 via-purple-300 to-transparent opacity-60" />
-            <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <GlassCard className="p-0" glow="cyan">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                    <Activity size={15} />
-                    System Integrity Matrix
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-                    Live admin overview
-                  </span>
-                </div>
-
-                <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl xl:text-6xl">
-                  Core Health:{" "}
-                  <span className="text-cyan-200">
-                    {loading
-                      ? "--"
-                      : hasOperationalData
-                        ? formatPercent(coreHealth)
-                        : "Awaiting data"}
-                  </span>
-                </h1>
-                <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">
-                  Planora AI operations center for project throughput, user
-                  activity, task completion, and live risk pressure across the
-                  admin workspace.
+                <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                  <Activity size={15} />
+                  System overview
                 </p>
-
-                <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
-                  <MetricBar
-                    label="Project sync"
-                    value={activeProjectPercent}
-                    detail={activeProjectRate}
-                    tone="cyan"
-                    loading={loading}
-                  />
-                  <MetricBar
-                    label="Task resolution"
-                    value={completionPercent}
-                    detail={completionRate}
-                    tone="purple"
-                    loading={loading}
-                  />
-                  <MetricBar
-                    label="Risk pressure"
-                    value={riskPressure}
-                    detail={`${riskPressure}%`}
-                    tone={riskPressure > 25 ? "rose" : "emerald"}
-                    loading={loading}
-                  />
-                </div>
+                <h1 className="mt-5 text-4xl font-bold leading-tight text-white sm:text-5xl">
+                  Project operations at a glance
+                </h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
+                  Live admin summary from Planora backend data: users, projects,
+                  tasks, risk records, and recent activity.
+                </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                <SignalModule
-                  label="AI sync"
-                  value={loading ? "--" : `${intelligenceSync}%`}
-                  detail="Project intelligence"
-                  tone="cyan"
-                  icon={Network}
-                />
-                <SignalModule
-                  label="Risk flags"
-                  value={loading ? "--" : formatCount(highRiskProjects)}
-                  detail="Requires review"
-                  tone={highRiskProjects ? "rose" : "emerald"}
-                  icon={AlertTriangle}
-                />
-                <SignalModule
-                  label="Task backlog"
-                  value={loading ? "--" : formatCount(overdueTasks)}
-                  detail="Overdue queue"
-                  tone={overdueTasks ? "amber" : "emerald"}
-                  icon={Database}
-                />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                  Last updated
+                </p>
+                <p className="mt-1 font-semibold text-white">
+                  {loading ? "Loading..." : formatDateTime(overview.generated_at)}
+                </p>
               </div>
             </div>
           </div>
         </GlassCard>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-          <SignalModule
-            label="Admin guard"
-            value="Active"
-            detail="Session shield"
-            tone="emerald"
-            icon={ShieldCheck}
-          />
-          <SignalModule
-            label="Neural latency"
-            value={loading ? "--" : `${Math.max(12, 42 - intelligenceSync / 4)}ms`}
-            detail="Overview channel"
-            tone="purple"
-            icon={Gauge}
-          />
-          <GlassCard className="p-5" glow="purple">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-purple-200">
-                  System Pulse
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Monitoring active admins, project drift, and risk anomalies
-                  with the current backend overview data.
-                </p>
-              </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-300/10 text-purple-200">
-                <Sparkles size={22} />
-              </div>
+        <GlassCard glow={riskTone}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Risk status
+              </p>
+              <h2 className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}>
+                {loading
+                  ? "--"
+                  : risks.high_risk_records > 0
+                    ? "Needs review"
+                    : tasks.overdue_tasks > 0
+                      ? "Overdue tasks"
+                      : "Stable"}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                {formatCount(risks.high_risk_records)} high-risk records and{" "}
+                {formatCount(tasks.overdue_tasks)} overdue tasks.
+              </p>
             </div>
-          </GlassCard>
-        </div>
+            <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}
+            >
+              <AlertTriangle size={22} />
+            </div>
+          </div>
+        </GlassCard>
       </section>
 
       {error && (
@@ -400,117 +349,93 @@ export default function DashboardPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total Users"
-          value={loading ? "--" : formatCount(overview.total_users)}
-          detail={loading ? "Synchronizing" : `${activeUserRate} active`}
+          title="Users"
+          value={loading ? "--" : formatCount(users.total_users)}
+          detail={
+            loading
+              ? "Loading project data..."
+              : `${formatRate(users.active_users, users.total_users)} active`
+          }
           icon={Users}
           accent="cyan"
-          signal="+ admin identity map"
+          signal={`${formatCount(users.admin_users)} admins`}
         />
         <StatCard
           title="Projects"
-          value={loading ? "--" : formatCount(overview.total_projects)}
-          detail={loading ? "Synchronizing" : `${activeProjectRate} active`}
+          value={loading ? "--" : formatCount(projects.total_projects)}
+          detail={
+            loading
+              ? "Loading project data..."
+              : `${formatRate(projects.completed_projects, projects.total_projects)} complete`
+          }
           icon={FolderKanban}
-          accent="purple"
-          signal="+ portfolio nodes"
+          accent="cyan"
+          signal={`${formatCount(openProjectCount)} open`}
         />
         <StatCard
           title="Tasks"
-          value={loading ? "--" : formatCount(overview.total_tasks)}
-          detail={loading ? "Synchronizing" : `${completionRate} completed`}
-          icon={ListChecks}
-          accent="emerald"
-          signal="+ throughput scan"
-        />
-        <StatCard
-          title="Risk Flags"
-          value={loading ? "--" : formatCount(highRiskProjects)}
+          value={loading ? "--" : formatCount(tasks.total_tasks)}
           detail={
             loading
-              ? "Synchronizing"
-              : `${formatCount(overdueTasks)} overdue tasks`
+              ? "Loading project data..."
+              : `${formatRate(tasks.completed_tasks, tasks.total_tasks)} complete`
+          }
+          icon={ListChecks}
+          accent="emerald"
+          signal={`${formatCount(tasks.blocked_tasks)} blocked`}
+        />
+        <StatCard
+          title="Risk"
+          value={loading ? "--" : formatCount(risks.total_risk_records)}
+          detail={
+            loading
+              ? "Loading project data..."
+              : `${formatCount(risks.high_risk_records)} high risk`
           }
           icon={AlertTriangle}
-          accent={highRiskProjects || overdueTasks ? "rose" : "emerald"}
-          signal="+ anomaly watch"
+          accent={riskTone}
+          signal={`${formatCount(risks.medium_risk_records)} medium`}
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.75fr)]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
         <GlassCard glow="cyan">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">
-                Productivity Trends
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">
-                Neural throughput analysis
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                A compact command view for project activity, completion
-                velocity, and admin-side intelligence refresh.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-cyan-200">
-                Primary nodes
-              </span>
-              <span className="rounded-xl border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-purple-200">
-                Shadow assets
-              </span>
-            </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+              Project progress
+            </p>
+            <h2 className="text-2xl font-bold text-white">
+              Delivery status from real project data
+            </h2>
+            <p className="text-sm leading-6 text-slate-400">
+              The bars below use the current overview endpoint. Empty values
+              mean the backend has no records for that status yet.
+            </p>
           </div>
 
-          <div className="mt-8 h-72 rounded-3xl border border-white/10 bg-black/25 p-5">
-            <div className="flex h-full items-end gap-2 border-b border-white/10">
-              {chartBars.map((value, index) => {
-                const adjusted = Math.max(
-                  18,
-                  Math.min(96, value + completionPercent / 10 - riskPressure / 12),
-                );
-
-                return (
-                  <motion.div
-                    key={`${value}-${index}`}
-                    initial={{ height: 0, opacity: 0.45 }}
-                    animate={{
-                      height: loading ? "12%" : `${adjusted}%`,
-                      opacity: 1,
-                    }}
-                    transition={{ duration: 0.65, delay: index * 0.03 }}
-                    className={`min-w-0 flex-1 rounded-t-xl ${
-                      index % 5 === 3
-                        ? "bg-purple-300/70 shadow-[0_0_22px_rgba(216,180,254,0.18)]"
-                        : "bg-cyan-300/55 shadow-[0_0_22px_rgba(34,211,238,0.16)]"
-                    }`}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <MetricBar
-              label="Active users"
-              value={activeUserPercent}
-              detail={activeUserRate}
-              tone="cyan"
-              loading={loading}
+          <div className="mt-6 space-y-5">
+            <ProgressRow
+              label="In progress"
+              value={projects.in_progress_projects}
+              total={projects.total_projects}
             />
-            <MetricBar
-              label="Active projects"
-              value={activeProjectPercent}
-              detail={activeProjectRate}
-              tone="purple"
-              loading={loading}
-            />
-            <MetricBar
-              label="Completed tasks"
-              value={completionPercent}
-              detail={completionRate}
+            <ProgressRow
+              label="Completed"
+              value={projects.completed_projects}
+              total={projects.total_projects}
               tone="emerald"
-              loading={loading}
+            />
+            <ProgressRow
+              label="On hold"
+              value={projects.on_hold_projects}
+              total={projects.total_projects}
+              tone="amber"
+            />
+            <ProgressRow
+              label="Cancelled"
+              value={projects.cancelled_projects}
+              total={projects.total_projects}
+              tone="rose"
             />
           </div>
         </GlassCard>
@@ -518,143 +443,129 @@ export default function DashboardPage() {
         <GlassCard glow="purple">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-purple-200">
-                System Activity
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-200">
+                System status
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">
-                Live signal feed
+                Admin data health
               </h2>
             </div>
-            <span className="flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-cyan-200">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" />
-              Live
-            </span>
+            <ShieldCheck size={22} className="text-cyan-200" />
           </div>
 
-          <div className="mt-6 space-y-3">
-            {activityEvents.map((event) => {
-              const styles = toneMap[event.tone];
-              const Icon = event.icon;
-
-              return (
-                <div
-                  key={event.label}
-                  className={`rounded-2xl border ${styles.border} ${styles.bg} p-4`}
-                >
-                  <div className="flex gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/35">
-                      <Icon size={18} className={styles.text} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-white">{event.label}</p>
-                      <p className="mt-1 text-sm leading-5 text-slate-400">
-                        {loading ? "Synchronizing project intelligence…" : event.detail}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <DataTile
+              label="Email verified"
+              value={loading ? "--" : formatCount(users.verified_users)}
+              detail={`${formatCount(users.unverified_users)} users are not verified.`}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+            <DataTile
+              label="Teams"
+              value={loading ? "--" : formatCount(overview.teams_total)}
+              detail="Total teams tracked by the admin backend."
+              icon={Users}
+              tone="cyan"
+            />
+            <DataTile
+              label="Unread notices"
+              value={
+                loading ? "--" : formatCount(notifications.unread_notifications)
+              }
+              detail={`${formatCount(notifications.total_notifications)} notifications in total.`}
+              icon={Bell}
+              tone="purple"
+            />
           </div>
         </GlassCard>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <GlassCard glow="purple">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-300/10 text-purple-200">
-              <BrainCircuit size={22} />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-purple-200">
-                Intelligence Highlights
-              </p>
-              <h2 className="mt-1 text-2xl font-bold text-white">
-                Planora AI advisories
-              </h2>
-            </div>
+        <GlassCard glow="cyan">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+              Task progress
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white">
+              Work status by task count
+            </h2>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            {[
-              {
-                label: "Efficiency spike",
-                detail: `${completionRate} task completion across ${formatCount(overview.total_tasks)} tracked tasks.`,
-                tone: "cyan" as Tone,
-              },
-              {
-                label: "Risk anomaly",
-                detail: `${formatCount(highRiskProjects)} high-risk projects remain on the admin watchlist.`,
-                tone: highRiskProjects ? ("rose" as Tone) : ("emerald" as Tone),
-              },
-              {
-                label: "Predictive scaling",
-                detail: `${formatCount(overview.active_projects)} active projects are consuming live oversight.`,
-                tone: "purple" as Tone,
-              },
-            ].map((item) => {
-              const styles = toneMap[item.tone];
-
-              return (
-                <div
-                  key={item.label}
-                  className={`rounded-2xl border ${styles.border} ${styles.bg} p-4`}
-                >
-                  <p className={`text-xs uppercase tracking-[0.2em] ${styles.text}`}>
-                    {item.label}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
-                    {loading ? "Synchronizing project intelligence…" : item.detail}
-                  </p>
-                </div>
-              );
-            })}
+          <div className="mt-6 space-y-5">
+            <ProgressRow
+              label="To do"
+              value={tasks.todo_tasks}
+              total={tasks.total_tasks}
+              tone="cyan"
+            />
+            <ProgressRow
+              label="In progress"
+              value={tasks.in_progress_tasks}
+              total={tasks.total_tasks}
+              tone="purple"
+            />
+            <ProgressRow
+              label="Completed"
+              value={tasks.completed_tasks}
+              total={tasks.total_tasks}
+              tone="emerald"
+            />
+            <ProgressRow
+              label="Blocked"
+              value={tasks.blocked_tasks}
+              total={tasks.total_tasks}
+              tone="rose"
+            />
           </div>
         </GlassCard>
 
-        <GlassCard glow={riskPressure > 25 || delayPressure > 20 ? "rose" : "cyan"}>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">
-                Project Intelligence
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">
-                Risk and delivery matrix
-              </h2>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-slate-300">
-              {loading ? "Analyzing" : `${formatCount(overview.active_projects)} active nodes`}
-            </div>
+        <GlassCard glow={riskTone}>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+              Recent activity
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white">
+              Latest backend events
+            </h2>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
-              <TrendingUp size={22} className="text-cyan-200" />
-              <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-500">
-                Delivery velocity
-              </p>
-              <p className="mt-2 text-3xl font-black text-white">
-                {loading ? "--" : completionRate}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-purple-300/20 bg-purple-300/10 p-4">
-              <Zap size={22} className="text-purple-200" />
-              <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-500">
-                AI sync score
-              </p>
-              <p className="mt-2 text-3xl font-black text-white">
-                {loading ? "--" : `${intelligenceSync}%`}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4">
-              <AlertTriangle size={22} className="text-rose-200" />
-              <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-500">
-                Delay probability
-              </p>
-              <p className="mt-2 text-3xl font-black text-white">
-                {loading ? "--" : `${delayPressure}%`}
-              </p>
-            </div>
+          <div className="mt-6 space-y-3">
+            {activityLoading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
+                />
+              ))
+            ) : activity.length > 0 ? (
+              activity.map((event) => (
+                <div
+                  key={event.activity_id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-300" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">
+                        {event.event_type.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-slate-400">
+                        {event.message}
+                      </p>
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                        <Clock3 size={13} />
+                        {formatDateTime(event.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm leading-6 text-slate-400">
+                {activityError || "No recent activity yet."}
+              </div>
+            )}
           </div>
         </GlassCard>
       </section>

@@ -312,7 +312,17 @@ export default function AdminUsersPage() {
 
   async function refreshUsers() {
     const response = await api.get<AdminUser[]>("/admin/users", {
-      params: { limit: 100 },
+      params: {
+        limit: 100,
+        role: roleFilter === "all" ? undefined : roleFilter,
+        is_active:
+          statusFilter === "all" ? undefined : statusFilter === "active",
+        is_email_verified:
+          verificationFilter === "all"
+            ? undefined
+            : verificationFilter === "verified",
+        search: search.trim() || undefined,
+      },
     });
     setUsers(response.data);
   }
@@ -359,33 +369,30 @@ export default function AdminUsersPage() {
     <div className="space-y-6 pb-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GlassCard className="p-0" glow="cyan">
-          <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8">
-            <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(34,211,238,0.13),transparent_46%,rgba(192,132,252,0.1))]" />
-            <div className="relative z-10">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                    <Users size={15} />
-                    Neural Assets Registry
-                  </p>
-                  <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
-                    Admin Users
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Monitor operators, verification state, account access, and
-                    role changes from the Planora control center.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={refreshUsers}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 shadow-[0_0_30px_rgba(34,211,238,0.22)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-                >
-                  <RefreshCw size={17} />
-                  Sync
-                </button>
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                  <Users size={15} />
+                  Users
+                </p>
+                <h1 className="mt-5 text-4xl font-bold leading-tight text-white sm:text-5xl">
+                  Admin users
+                </h1>
+                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+                  Manage account access, roles, email verification, and recent
+                  activity for Planora users.
+                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={refreshUsers}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-200"
+              >
+                <RefreshCw size={17} />
+                Refresh users
+              </button>
             </div>
           </div>
         </GlassCard>
@@ -397,7 +404,7 @@ export default function AdminUsersPage() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-purple-200">
-                Access Layer
+                Admin actions
               </p>
               <p className="mt-1 text-sm leading-6 text-slate-300">
                 Actions are sent through the existing protected admin API.
@@ -409,20 +416,20 @@ export default function AdminUsersPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Visible Users"
+          title="Filtered users"
           value={loadingUsers ? "--" : stats.total}
           detail="Current query"
           icon={Users}
           accent="cyan"
-          signal="+ registry scan"
+          signal="Search results"
         />
         <StatCard
           title="Active"
           value={loadingUsers ? "--" : stats.active}
-          detail={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% online`}
+          detail={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% active`}
           icon={UserCheck}
           accent="emerald"
-          signal="+ account health"
+          signal="Account status"
         />
         <StatCard
           title="Admins"
@@ -430,7 +437,7 @@ export default function AdminUsersPage() {
           detail="Privileged users"
           icon={Crown}
           accent="purple"
-          signal="+ role matrix"
+          signal="Role count"
         />
         <StatCard
           title="Verified"
@@ -438,7 +445,7 @@ export default function AdminUsersPage() {
           detail="Email confirmed"
           icon={MailCheck}
           accent="cyan"
-          signal="+ identity check"
+          signal="Email status"
         />
       </section>
 
@@ -466,10 +473,10 @@ export default function AdminUsersPage() {
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">
-                  User Management
+                  User management
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-white">
-                  Operator nodes
+                  User list
                 </h2>
               </div>
 
@@ -522,7 +529,7 @@ export default function AdminUsersPage() {
 
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/25">
               <div className="hidden grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] border-b border-white/10 bg-white/[0.045] px-5 py-4 text-xs uppercase tracking-[0.2em] text-slate-500 lg:grid">
-                <span>Operator</span>
+                <span>User</span>
                 <span>Role</span>
                 <span>Status</span>
                 <span>Created</span>
@@ -547,7 +554,7 @@ export default function AdminUsersPage() {
                     No users matched
                   </h3>
                   <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                    Adjust the search or filters to widen the registry scan.
+                    Adjust the search or filters to show more accounts.
                   </p>
                 </div>
               ) : (
@@ -699,10 +706,10 @@ export default function AdminUsersPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-purple-200">
-                Intelligence Panel
+                User detail
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">
-                User detail
+                Account summary
               </h2>
             </div>
             <Activity size={22} className="text-cyan-200" />
@@ -840,7 +847,7 @@ export default function AdminUsersPage() {
           ) : (
             <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.045] p-6 text-center">
               <p className="text-sm text-slate-400">
-                Select a user to view account intelligence.
+                Select a user to view account details.
               </p>
             </div>
           )}

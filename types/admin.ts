@@ -1,12 +1,53 @@
-export type AdminOverview = {
+export type AdminUserStats = {
   total_users: number;
   active_users: number;
+  inactive_users: number;
+  verified_users: number;
+  unverified_users: number;
+  admin_users: number;
+};
+
+export type AdminProjectStats = {
   total_projects: number;
-  active_projects: number;
+  personal_projects: number;
+  team_projects: number;
+  not_started_projects: number;
+  in_progress_projects: number;
+  completed_projects: number;
+  on_hold_projects: number;
+  cancelled_projects: number;
+};
+
+export type AdminTaskStats = {
   total_tasks: number;
+  todo_tasks: number;
+  in_progress_tasks: number;
   completed_tasks: number;
-  overdue_tasks?: number;
-  high_risk_projects?: number;
+  blocked_tasks: number;
+  overdue_tasks: number;
+};
+
+export type AdminRiskStats = {
+  total_risk_records: number;
+  low_risk_records: number;
+  medium_risk_records: number;
+  high_risk_records: number;
+};
+
+export type AdminNotificationStats = {
+  total_notifications: number;
+  unread_notifications: number;
+  read_notifications: number;
+};
+
+export type AdminDashboardOverview = {
+  users: AdminUserStats;
+  projects: AdminProjectStats;
+  tasks: AdminTaskStats;
+  teams_total: number;
+  risks: AdminRiskStats;
+  notifications: AdminNotificationStats;
+  generated_at: string;
 };
 
 export type AdminUser = {

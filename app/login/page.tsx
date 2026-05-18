@@ -140,7 +140,7 @@ export default function LoginPage() {
   if (checkingSession) {
     return (
       <PlanoraLoader
-        label="Planora Admin Core"
+        label="Planora AI Core"
         detail="Checking admin session..."
       />
     );
@@ -148,9 +148,9 @@ export default function LoginPage() {
 
   return (
     <AdminAuthShell
-      eyebrow="AI Project Control Dashboard"
-      title="Planora Admin Portal"
-      subtitle="Secure system monitoring and project intelligence for Planora administrators."
+      eyebrow="Admin access"
+      title="Planora Admin"
+      subtitle="Sign in to manage users, projects, tasks, and risk."
     >
       <form onSubmit={handleLogin} className="space-y-5" noValidate>
         <div>
@@ -224,7 +224,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Authenticating admin..." : "Access Admin Dashboard"}
+          {loading ? "Authenticating admin..." : "Login"}
         </button>
       </form>
     </AdminAuthShell>

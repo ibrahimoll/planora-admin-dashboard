@@ -94,9 +94,9 @@ export default function ResetPasswordPage() {
 
   return (
     <AdminAuthShell
-      eyebrow="Reset Authorization"
-      title="Set a New Admin Password"
-      subtitle="Validate your recovery code and restore secure access to the Planora Admin Portal."
+      eyebrow="New password"
+      title="Set a new admin password"
+      subtitle="Enter the email, reset code, and new password for the admin account."
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div>
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
           disabled={loading}
           className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Updating credentials..." : "Reset Admin Password"}
+          {loading ? "Updating password..." : "Reset admin password"}
         </button>
 
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">

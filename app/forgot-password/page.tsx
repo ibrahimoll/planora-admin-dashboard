@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, MailCheck } from "lucide-react";
 import { AdminAuthShell } from "@/components/auth/AdminAuthShell";
@@ -16,6 +17,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +37,12 @@ export default function ForgotPasswordPage() {
       await api.post<MessageResponse>("/auth/forgot-password", {
         email: emailValue,
       });
-      setSuccess("If an account with that email exists, a reset code has been sent.");
+
+      setSuccess(
+        "If an account with that email exists, a reset code has been sent.",
+      );
+
+      router.push(`/reset-password?email=${encodeURIComponent(emailValue)}`);
     } catch (requestError) {
       setError(
         getAuthRequestErrorMessage(
@@ -50,9 +57,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <AdminAuthShell
-      eyebrow="Credential Recovery"
-      title="Recover Admin Access"
-      subtitle="Request a secure reset code for your Planora administrator account."
+      eyebrow="Password reset"
+      title="Reset your admin password"
+      subtitle="Enter your admin email and we will send a reset code."
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div>
@@ -106,7 +113,7 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Sending reset code..." : "Send Reset Code"}
+          {loading ? "Sending reset code..." : "Send reset code"}
         </button>
 
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -116,12 +123,6 @@ export default function ForgotPasswordPage() {
           >
             <ArrowLeft size={16} />
             Back to login
-          </Link>
-          <Link
-            href="/reset-password"
-            className="font-medium text-cyan-200 transition hover:text-white"
-          >
-            Enter reset code
           </Link>
         </div>
       </form>
