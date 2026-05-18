@@ -281,62 +281,64 @@ export default function DashboardPage() {
 
   return (
     <PageTransition className="space-y-6 pb-10">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GlassCard className="p-0">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0">
-                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                  <Activity size={15} />
-                  System overview
+      <Reveal>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <GlassCard className="p-0">
+            <div className="p-6 sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
+                    <Activity size={15} />
+                    System overview
+                  </p>
+                  <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                    Project operations overview
+                  </h1>
+                  <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+                    A current admin summary from Planora data: users, projects,
+                    tasks, risk records, and recent activity.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Last updated
+                  </p>
+                  <p className="mt-1 font-semibold text-white">
+                    {loading ? "Loading..." : formatDateTime(overview.generated_at)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard glow={riskTone}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Risk status
                 </p>
-                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                  Project operations overview
-                </h1>
-                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
-                  A current admin summary from Planora data: users, projects,
-                  tasks, risk records, and recent activity.
+                <h2 className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}>
+                  {loading
+                    ? "--"
+                    : risks.high_risk_records > 0
+                      ? "Needs review"
+                      : tasks.overdue_tasks > 0
+                        ? "Overdue tasks"
+                        : "Stable"}
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-slate-400">
+                  {formatCount(risks.high_risk_records)} high-risk records and{" "}
+                  {formatCount(tasks.overdue_tasks)} overdue tasks.
                 </p>
               </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                  Last updated
-                </p>
-                <p className="mt-1 font-semibold text-white">
-                  {loading ? "Loading..." : formatDateTime(overview.generated_at)}
-                </p>
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}>
+                <AlertTriangle size={22} />
               </div>
             </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard glow={riskTone}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Risk status
-              </p>
-              <h2 className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}>
-                {loading
-                  ? "--"
-                  : risks.high_risk_records > 0
-                    ? "Needs review"
-                    : tasks.overdue_tasks > 0
-                      ? "Overdue tasks"
-                      : "Stable"}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-400">
-                {formatCount(risks.high_risk_records)} high-risk records and{" "}
-                {formatCount(tasks.overdue_tasks)} overdue tasks.
-              </p>
-            </div>
-            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}>
-              <AlertTriangle size={22} />
-            </div>
-          </div>
-        </GlassCard>
-      </section>
+          </GlassCard>
+        </section>
+      </Reveal>
 
       {error && (
         <GlassCard className="border-amber-500/20 bg-amber-500/10" glow="rose">
