@@ -20,6 +20,35 @@ export type AdminUser = {
   created_at: string;
 };
 
+export type AdminUserCounts = {
+  projects_created: number;
+  assigned_tasks: number;
+  created_tasks: number;
+  notifications: number;
+  admin_logs_as_target: number;
+};
+
+export type AdminUserDetail = AdminUser & {
+  profile_pic: string | null;
+  counts: AdminUserCounts;
+};
+
+export type AdminUserActionResponse = {
+  message: string;
+  user: AdminUserDetail;
+  admin_log_id: number;
+};
+
+export type AdminActivityLog = {
+  activity_id: number;
+  project_id: number;
+  task_id: number | null;
+  actor_id: number | null;
+  event_type: string;
+  message: string;
+  created_at: string;
+};
+
 export type AdminProject = {
   project_id: number;
   title: string;
