@@ -235,6 +235,10 @@ export default function AdminReportsPage() {
             padding: 0 !important;
           }
 
+          .report-equal-card {
+            height: auto !important;
+          }
+
           .custom-report-scroll {
             max-height: none !important;
             overflow: visible !important;
@@ -405,12 +409,14 @@ export default function AdminReportsPage() {
                           {report.project.project_type}
                         </p>
                       </div>
+
                       <div>
                         <p className="text-slate-500">Deadline</p>
                         <p className="mt-1 font-semibold text-white">
                           {formatDate(report.project.deadline)}
                         </p>
                       </div>
+
                       <div>
                         <p className="text-slate-500">Generated</p>
                         <p className="mt-1 font-semibold text-white">
@@ -449,6 +455,7 @@ export default function AdminReportsPage() {
                   icon={ListChecks}
                   accent="cyan"
                 />
+
                 <StatCard
                   title="Pending"
                   value={formatNumber(report.progress.pending_tasks)}
@@ -458,6 +465,7 @@ export default function AdminReportsPage() {
                   icon={Clock3}
                   accent={report.progress.overdue_tasks > 0 ? "rose" : "amber"}
                 />
+
                 <StatCard
                   title="Members"
                   value={formatNumber(report.members.length)}
@@ -465,6 +473,7 @@ export default function AdminReportsPage() {
                   icon={Users}
                   accent="purple"
                 />
+
                 <StatCard
                   title="Activity"
                   value={formatNumber(
@@ -547,12 +556,14 @@ export default function AdminReportsPage() {
                         {formatHours(report.hours.estimated_hours_total)}
                       </span>
                     </div>
+
                     <div className="flex justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3">
                       <span className="text-slate-300">Actual hours</span>
                       <span className="font-semibold text-white">
                         {formatHours(report.hours.actual_hours_total)}
                       </span>
                     </div>
+
                     <div className="flex justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3">
                       <span className="text-slate-300">Reminders</span>
                       <span className="font-semibold text-white">
@@ -564,15 +575,15 @@ export default function AdminReportsPage() {
               </Reveal>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="grid gap-6 xl:grid-cols-2">
               <Reveal>
-                <GlassCard>
+                <GlassCard className="report-equal-card flex h-[520px] flex-col">
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
                     <Users size={18} className="text-violet-300" />
                     Members
                   </h3>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="custom-report-scroll mt-5 flex-1 space-y-3 overflow-auto pr-2">
                     {report.members.length === 0 ? (
                       <p className="text-sm text-slate-400">
                         No members found for this project.
@@ -600,14 +611,14 @@ export default function AdminReportsPage() {
               </Reveal>
 
               <Reveal>
-                <GlassCard>
+                <GlassCard className="report-equal-card flex h-[520px] flex-col">
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
                     <FileText size={18} className="text-teal-300" />
                     Tasks
                   </h3>
 
-                  <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800">
-                    <div className="custom-report-scroll max-h-[520px] overflow-auto">
+                  <div className="mt-5 flex-1 overflow-hidden rounded-2xl border border-slate-800">
+                    <div className="custom-report-scroll h-full overflow-auto">
                       <div className="min-w-[760px]">
                         <div className="sticky top-0 z-10 grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr] bg-slate-950 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                           <span>Task</span>
