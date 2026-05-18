@@ -3,7 +3,6 @@
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
-import { StatCard } from "@/components/ui/StatCard";
 import { api } from "@/lib/api";
 import type {
   AdminProjectDetail,
@@ -21,7 +20,6 @@ import {
   ListChecks,
   RefreshCw,
   Search,
-  ShieldAlert,
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -37,30 +35,12 @@ type ApiError = {
   };
 };
 
-const statusFilterOptions: Array<{ label: string; value: StatusFilter }> = [
-  { label: "All status", value: "all" },
-  { label: "Not started", value: "not_started" },
-  { label: "In progress", value: "in_progress" },
-  { label: "Completed", value: "completed" },
-  { label: "On hold", value: "on_hold" },
-  { label: "Cancelled", value: "cancelled" },
-];
-
-const projectStatusOptions: Array<{
-  label: string;
-  value: AdminProjectStatus;
-}> = [
-  { label: "Not started", value: "not_started" },
-  { label: "In progress", value: "in_progress" },
-  { label: "Completed", value: "completed" },
-  { label: "On hold", value: "on_hold" },
-  { label: "Cancelled", value: "cancelled" },
-];
-
-const typeOptions: Array<{ label: string; value: TypeFilter }> = [
-  { label: "All types", value: "all" },
-  { label: "Personal", value: "personal" },
-  { label: "Team", value: "team" },
+const statusOrder: AdminProjectStatus[] = [
+  "not_started",
+  "in_progress",
+  "on_hold",
+  "completed",
+  "cancelled",
 ];
 
 const statusLabels: Record<AdminProjectStatus, string> = {
@@ -70,6 +50,40 @@ const statusLabels: Record<AdminProjectStatus, string> = {
   on_hold: "On hold",
   cancelled: "Cancelled",
 };
+
+const statusClasses: Record<AdminProjectStatus, string> = {
+  not_started: "border-slate-700 bg-slate-900/70 text-slate-300",
+  in_progress: "border-teal-500/20 bg-teal-500/10 text-teal-200",
+  completed: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
+  on_hold: "border-amber-500/20 bg-amber-500/10 text-amber-200",
+  cancelled: "border-rose-500/20 bg-rose-500/10 text-rose-200",
+};
+
+const statusFilterOptions: Array<{ label: string; value: StatusFilter }> = [
+  { label: "All status", value: "all" },
+  { label: "Not started", value: "not_started" },
+  { label: "In progress", value: "in_progress" },
+  { label: "On hold", value: "on_hold" },
+  { label: "Completed", value: "completed" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+const projectStatusOptions: Array<{
+  label: string;
+  value: AdminProjectStatus;
+}> = [
+  { label: "Not started", value: "not_started" },
+  { label: "In progress", value: "in_progress" },
+  { label: "On hold", value: "on_hold" },
+  { label: "Completed", value: "completed" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+const typeOptions: Array<{ label: string; value: TypeFilter }> = [
+  { label: "All types", value: "all" },
+  { label: "Personal", value: "personal" },
+  { label: "Team", value: "team" },
+];
 
 function getApiErrorMessage(error: unknown, fallback: string) {
   const detail = (error as ApiError).response?.data?.detail;
@@ -99,6 +113,20 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function getDeadlineText(deadline: string, status: AdminProjectStatus) {
+  if (status === "completed") return "Completed";
+
+  const today = new Date();
+  const deadlineDate = new Date(deadline);
+  const difference = deadlineDate.getTime() - today.getTime();
+  const days = Math.ceil(difference / (1000 * 60 * 60 * 24));
+
+  if (days < 0) return `${Math.abs(days)} days late`;
+  if (days === 0) return "Due today";
+  if (days === 1) return "1 day left";
+  return `${days} days left`;
+}
+
 function isOverdue(deadline: string, status: AdminProjectStatus) {
   return status !== "completed" && new Date(deadline).getTime() < Date.now();
 }
@@ -106,10 +134,14 @@ function isOverdue(deadline: string, status: AdminProjectStatus) {
 function getRiskClasses(project: AdminProjectSummary | AdminProjectDetail) {
   const risk = project.latest_risk?.risk_level;
 
-  if (risk === "high") return "border-rose-500/20 bg-rose-500/10 text-rose-200";
+  if (risk === "high") {
+    return "border-rose-500/20 bg-rose-500/10 text-rose-200";
+  }
+
   if (risk === "medium") {
     return "border-amber-500/20 bg-amber-500/10 text-amber-200";
   }
+
   if (risk === "low") {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
   }
@@ -117,24 +149,10 @@ function getRiskClasses(project: AdminProjectSummary | AdminProjectDetail) {
   return "border-slate-700 bg-slate-900/70 text-slate-300";
 }
 
-function getStatusClasses(status: AdminProjectStatus) {
-  const classes: Record<AdminProjectStatus, string> = {
-    not_started: "border-slate-700 bg-slate-900/70 text-slate-300",
-    in_progress: "border-teal-500/20 bg-teal-500/10 text-teal-200",
-    completed: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
-    on_hold: "border-amber-500/20 bg-amber-500/10 text-amber-200",
-    cancelled: "border-rose-500/20 bg-rose-500/10 text-rose-200",
-  };
-
-  return classes[status];
-}
-
 function StatusPill({ status }: { status: AdminProjectStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(
-        status,
-      )}`}
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[status]}`}
     >
       {statusLabels[status]}
     </span>
@@ -189,6 +207,35 @@ function ProjectProgress({ value }: { value: number }) {
   );
 }
 
+function MetricTile({
+  label,
+  value,
+  detail,
+  tone = "teal",
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  tone?: "teal" | "emerald" | "amber" | "rose";
+}) {
+  const toneClass = {
+    teal: "text-teal-200",
+    emerald: "text-emerald-200",
+    amber: "text-amber-200",
+    rose: "text-rose-200",
+  }[tone];
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </p>
+      <p className={`mt-2 text-3xl font-semibold ${toneClass}`}>{value}</p>
+      <p className="mt-1 text-sm text-slate-400">{detail}</p>
+    </div>
+  );
+}
+
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<AdminProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -215,14 +262,24 @@ export default function AdminProjectsPage() {
     const completed = projects.filter(
       (project) => project.status === "completed",
     ).length;
+    const overdue = projects.filter((project) =>
+      isOverdue(project.deadline, project.status),
+    ).length;
     const highRisk = projects.filter(
       (project) => project.latest_risk?.risk_level === "high",
     ).length;
 
-    return { total, inProgress, completed, highRisk };
+    return { total, inProgress, completed, overdue, highRisk };
   }, [projects]);
 
-  async function refreshProjects() {
+  const groupedProjects = useMemo(() => {
+    return statusOrder.map((status) => ({
+      status,
+      projects: projects.filter((project) => project.status === status),
+    }));
+  }, [projects]);
+
+  async function fetchProjects() {
     const response = await api.get<AdminProjectSummary[]>("/admin/projects", {
       params: {
         limit: 100,
@@ -233,20 +290,34 @@ export default function AdminProjectsPage() {
       },
     });
 
-    setProjects(response.data);
+    return response.data;
+  }
 
-    setSelectedProjectId((current) => {
-      if (response.data.length === 0) return null;
+  async function refreshProjects() {
+    setError("");
+    setNotice("");
 
-      if (
-        current &&
-        response.data.some((project) => project.project_id === current)
-      ) {
-        return current;
-      }
+    try {
+      const data = await fetchProjects();
+      setProjects(data);
 
-      return response.data[0].project_id;
-    });
+      setSelectedProjectId((current) => {
+        if (data.length === 0) return null;
+
+        if (current && data.some((project) => project.project_id === current)) {
+          return current;
+        }
+
+        return data[0].project_id;
+      });
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to refresh projects right now.",
+        ),
+      );
+    }
   }
 
   useEffect(() => {
@@ -370,7 +441,9 @@ export default function AdminProjectsPage() {
       setNotice(response.data.message);
       setSelectedProject(response.data.project);
       setNewStatus(response.data.project.status);
-      await refreshProjects();
+
+      const data = await fetchProjects();
+      setProjects(data);
     } catch (requestError) {
       setError(
         getApiErrorMessage(
@@ -386,89 +459,67 @@ export default function AdminProjectsPage() {
   return (
     <PageTransition className="space-y-6 pb-10">
       <Reveal>
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <GlassCard className="p-0">
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                    <FolderKanban size={15} />
-                    Projects
-                  </p>
-                  <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                    Admin projects
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Review ownership, deadlines, task progress, and risk signals
-                    across Planora projects.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={refreshProjects}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
-                >
-                  <RefreshCw size={17} />
-                  Refresh projects
-                </button>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard>
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                <ShieldAlert size={22} />
-              </div>
+        <GlassCard className="p-0">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Project oversight
+                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
+                  <FolderKanban size={15} />
+                  Portfolio board
                 </p>
-                <p className="mt-1 text-sm leading-6 text-slate-300">
-                  Status changes are sent through the protected admin API.
+
+                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                  Project delivery overview
+                </h1>
+
+                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
+                  Monitor project progress, deadlines, blocked work, and risk
+                  across Planora.
                 </p>
               </div>
-            </div>
-          </GlassCard>
-        </section>
-      </Reveal>
 
-      <Reveal delay={0.04}>
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Filtered projects"
-            value={loadingProjects ? "--" : stats.total}
-            detail="Current query"
-            icon={FolderKanban}
-            accent="cyan"
-            signal="Search results"
-          />
-          <StatCard
-            title="In progress"
-            value={loadingProjects ? "--" : stats.inProgress}
-            detail="Active work"
-            icon={Clock3}
-            accent="cyan"
-            signal="Project status"
-          />
-          <StatCard
-            title="Completed"
-            value={loadingProjects ? "--" : stats.completed}
-            detail="Finished projects"
-            icon={CheckCircle2}
-            accent="emerald"
-            signal="Delivery"
-          />
-          <StatCard
-            title="High risk"
-            value={loadingProjects ? "--" : stats.highRisk}
-            detail="Needs review"
-            icon={AlertTriangle}
-            accent={stats.highRisk > 0 ? "rose" : "emerald"}
-            signal="Risk"
-          />
-        </section>
+              <button
+                type="button"
+                onClick={refreshProjects}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
+              >
+                <RefreshCw size={17} />
+                Refresh projects
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <MetricTile
+                label="Projects"
+                value={loadingProjects ? "--" : stats.total}
+                detail="Current filters"
+              />
+              <MetricTile
+                label="In progress"
+                value={loadingProjects ? "--" : stats.inProgress}
+                detail="Active delivery"
+              />
+              <MetricTile
+                label="Completed"
+                value={loadingProjects ? "--" : stats.completed}
+                detail="Finished work"
+                tone="emerald"
+              />
+              <MetricTile
+                label="Overdue"
+                value={loadingProjects ? "--" : stats.overdue}
+                detail="Past deadline"
+                tone={stats.overdue > 0 ? "rose" : "emerald"}
+              />
+              <MetricTile
+                label="High risk"
+                value={loadingProjects ? "--" : stats.highRisk}
+                detail="Needs review"
+                tone={stats.highRisk > 0 ? "rose" : "emerald"}
+              />
+            </div>
+          </div>
+        </GlassCard>
       </Reveal>
 
       {(error || notice) && (
@@ -491,32 +542,36 @@ export default function AdminProjectsPage() {
         </GlassCard>
       )}
 
-      <Reveal delay={0.08}>
+      <Reveal delay={0.06}>
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
           <GlassCard>
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-                    Project portfolio
+                    Board
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">
-                    Project cards
+                    Projects by status
                   </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Cards are grouped by project status so delivery problems are
+                    easier to spot.
+                  </p>
                 </div>
 
-                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
+                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 xl:w-96">
                   <Search size={18} className="shrink-0 text-slate-500" />
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                    placeholder="Search title, owner, team..."
+                    placeholder="Search projects..."
                   />
                 </div>
               </div>
 
-              <div className="grid gap-3 border-y border-slate-800 py-4 lg:grid-cols-2">
+              <div className="grid gap-3 border-y border-slate-800 py-4 xl:grid-cols-2">
                 <div className="flex flex-wrap gap-2">
                   {statusFilterOptions.map((option) => (
                     <FilterButton
@@ -543,11 +598,11 @@ export default function AdminProjectsPage() {
               </div>
 
               {loadingProjects ? (
-                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, index) => (
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {statusOrder.map((status) => (
                     <div
-                      key={index}
-                      className="h-60 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
+                      key={status}
+                      className="min-h-72 w-72 shrink-0 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
                     />
                   ))}
                 </div>
@@ -564,95 +619,160 @@ export default function AdminProjectsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                  {projects.map((project) => {
-                    const selected = selectedProjectId === project.project_id;
-                    const overdue = isOverdue(project.deadline, project.status);
-                    const progress = clampPercent(
-                      project.task_stats.completion_percentage,
-                    );
-
-                    return (
-                      <button
-                        key={project.project_id}
-                        type="button"
-                        onClick={() => setSelectedProjectId(project.project_id)}
-                        className={`rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 ${
-                          selected
-                            ? "border-teal-500/40 bg-teal-500/10"
-                            : "border-slate-800 bg-slate-950/35 hover:border-teal-500/25 hover:bg-slate-900/70"
-                        }`}
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex min-w-max gap-4">
+                    {groupedProjects.map((group) => (
+                      <section
+                        key={group.status}
+                        className="w-72 shrink-0 rounded-2xl border border-slate-800 bg-slate-950/35 p-3"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold text-white">
-                              {project.title}
+                        <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                          <div>
+                            <p className="font-semibold text-white">
+                              {statusLabels[group.status]}
                             </p>
-                            <p className="mt-1 truncate text-sm text-slate-400">
-                              Owner:{" "}
-                              {project.owner.full_name ||
-                                project.owner.username}
+                            <p className="text-xs text-slate-500">
+                              {group.projects.length} projects
                             </p>
                           </div>
-
-                          <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-xs capitalize text-slate-300">
-                            {project.project_type}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <StatusPill status={project.status} />
                           <span
-                            className={`rounded-full border px-3 py-1 text-xs ${getRiskClasses(
-                              project,
-                            )}`}
+                            className={`rounded-full border px-2.5 py-1 text-xs ${statusClasses[group.status]}`}
                           >
-                            {project.latest_risk
-                              ? `${project.latest_risk.risk_level} risk`
-                              : "No risk record"}
+                            {group.projects.length}
                           </span>
                         </div>
 
-                        <div className="mt-5">
-                          <ProjectProgress value={progress} />
-                        </div>
+                        <div className="space-y-3">
+                          {group.projects.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-sm leading-6 text-slate-500">
+                              No projects in this status.
+                            </div>
+                          ) : (
+                            group.projects.map((project) => {
+                              const selected =
+                                selectedProjectId === project.project_id;
+                              const overdue = isOverdue(
+                                project.deadline,
+                                project.status,
+                              );
+                              const progress = clampPercent(
+                                project.task_stats.completion_percentage,
+                              );
 
-                        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <p className="text-slate-500">Tasks</p>
-                            <p className="mt-1 font-semibold text-white">
-                              {project.task_stats.completed_tasks}/
-                              {project.task_stats.total_tasks}
-                            </p>
-                          </div>
+                              return (
+                                <button
+                                  key={project.project_id}
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedProjectId(project.project_id)
+                                  }
+                                  className={`w-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                                    selected
+                                      ? "border-teal-500/40 bg-teal-500/10"
+                                      : "border-slate-800 bg-slate-900/60 hover:border-teal-500/25"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="line-clamp-2 font-semibold text-white">
+                                        {project.title}
+                                      </p>
+                                      <p className="mt-1 truncate text-sm text-slate-400">
+                                        {project.owner.full_name ||
+                                          project.owner.username}
+                                      </p>
+                                    </div>
 
-                          <div>
-                            <p className="text-slate-500">Deadline</p>
-                            <p
-                              className={`mt-1 font-semibold ${
-                                overdue ? "text-rose-200" : "text-white"
-                              }`}
-                            >
-                              {formatDate(project.deadline)}
-                            </p>
-                          </div>
+                                    <span className="shrink-0 rounded-full border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-xs capitalize text-slate-300">
+                                      {project.project_type}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-4">
+                                    <ProjectProgress value={progress} />
+                                  </div>
+
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    <span
+                                      className={`rounded-full border px-2.5 py-1 text-xs ${getRiskClasses(
+                                        project,
+                                      )}`}
+                                    >
+                                      {project.latest_risk
+                                        ? `${project.latest_risk.risk_level} risk`
+                                        : "No risk"}
+                                    </span>
+
+                                    <span
+                                      className={`rounded-full border px-2.5 py-1 text-xs ${
+                                        overdue
+                                          ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                                          : "border-slate-700 bg-slate-950/60 text-slate-300"
+                                      }`}
+                                    >
+                                      {getDeadlineText(
+                                        project.deadline,
+                                        project.status,
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                                    <div>
+                                      <p className="text-slate-500">Tasks</p>
+                                      <p className="mt-1 font-semibold text-white">
+                                        {project.task_stats.completed_tasks}/
+                                        {project.task_stats.total_tasks}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <p className="text-slate-500">Blocked</p>
+                                      <p
+                                        className={`mt-1 font-semibold ${
+                                          project.task_stats.blocked_tasks > 0
+                                            ? "text-amber-200"
+                                            : "text-white"
+                                        }`}
+                                      >
+                                        {project.task_stats.blocked_tasks}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <p className="text-slate-500">Due</p>
+                                      <p
+                                        className={`mt-1 font-semibold ${
+                                          overdue
+                                            ? "text-rose-200"
+                                            : "text-white"
+                                        }`}
+                                      >
+                                        {formatDate(project.deadline)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })
+                          )}
                         </div>
-                      </button>
-                    );
-                  })}
+                      </section>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </GlassCard>
 
-          <GlassCard>
+          <GlassCard className="xl:sticky xl:top-24 xl:self-start">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Project detail
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-white">
-                  Selected project
+                  Delivery summary
                 </h2>
               </div>
               <FolderKanban size={22} className="text-teal-300" />
@@ -670,9 +790,14 @@ export default function AdminProjectsPage() {
             ) : selectedProject ? (
               <div className="mt-6 space-y-5">
                 <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-5">
-                  <h3 className="text-2xl font-semibold text-white">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Project summary
+                  </p>
+
+                  <h3 className="mt-2 text-2xl font-semibold text-white">
                     {selectedProject.title}
                   </h3>
+
                   <p className="mt-3 text-sm leading-6 text-slate-400">
                     {selectedProject.description || "No description provided."}
                   </p>
