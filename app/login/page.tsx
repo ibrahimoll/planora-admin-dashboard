@@ -140,7 +140,7 @@ export default function LoginPage() {
   if (checkingSession) {
     return (
       <PlanoraLoader
-        label="Planora AI Core"
+        label="Loading Planora..."
         detail="Checking admin session..."
       />
     );
@@ -167,7 +167,7 @@ export default function LoginPage() {
             autoComplete="username"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "admin-login-error" : undefined}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
             placeholder="admin@planora.ai"
           />
         </div>
@@ -182,7 +182,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-cyan-200 transition hover:text-white"
+              className="text-sm font-medium text-teal-200 transition hover:text-white"
             >
               Forgot password?
             </Link>
@@ -196,14 +196,14 @@ export default function LoginPage() {
               autoComplete="current-password"
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "admin-login-error" : undefined}
-              className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 pr-14 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+              className="w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 pr-14 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
               placeholder="********"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100 transition hover:bg-cyan-300/20"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -222,7 +222,7 @@ export default function LoginPage() {
 
         <button
           disabled={loading}
-          className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Authenticating admin..." : "Login"}
         </button>

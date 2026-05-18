@@ -150,8 +150,8 @@ function FilterButton<T extends string>({
       onClick={() => onChange(value)}
       className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
         active
-          ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,0.12)]"
-          : "border-white/10 bg-white/[0.045] text-slate-400 hover:border-cyan-300/20 hover:text-cyan-100"
+          ? "border-teal-500/30 bg-teal-500/10 text-teal-100"
+          : "border-slate-800 bg-slate-900/60 text-slate-400 hover:border-teal-500/25 hover:text-white"
       }`}
     >
       {label}
@@ -368,15 +368,15 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6 pb-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GlassCard className="p-0" glow="cyan">
+        <GlassCard className="p-0">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
                   <Users size={15} />
                   Users
                 </p>
-                <h1 className="mt-5 text-4xl font-bold leading-tight text-white sm:text-5xl">
+                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
                   Admin users
                 </h1>
                 <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
@@ -388,7 +388,7 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={refreshUsers}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-200"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
               >
                 <RefreshCw size={17} />
                 Refresh users
@@ -397,13 +397,13 @@ export default function AdminUsersPage() {
           </div>
         </GlassCard>
 
-        <GlassCard glow="purple">
+        <GlassCard>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-300/10 text-purple-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
               <ShieldCheck size={22} />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-purple-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Admin actions
               </p>
               <p className="mt-1 text-sm leading-6 text-slate-300">
@@ -452,7 +452,7 @@ export default function AdminUsersPage() {
       {(error || notice) && (
         <GlassCard
           className={
-            error ? "border-rose-300/20 bg-rose-500/10" : "border-emerald-300/20 bg-emerald-500/10"
+            error ? "border-rose-500/20 bg-rose-500/10" : "border-emerald-500/20 bg-emerald-500/10"
           }
           glow={error ? "rose" : "cyan"}
         >
@@ -468,11 +468,11 @@ export default function AdminUsersPage() {
       )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <GlassCard glow="cyan">
+        <GlassCard>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
                   User management
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-white">
@@ -480,8 +480,8 @@ export default function AdminUsersPage() {
                 </h2>
               </div>
 
-              <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 shadow-inner shadow-black/30 lg:w-96">
-                <Search size={18} className="shrink-0 text-cyan-200" />
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
+                <Search size={18} className="shrink-0 text-slate-500" />
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -491,7 +491,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 border-y border-white/10 py-4 lg:grid-cols-3">
+            <div className="grid gap-3 border-y border-slate-800 py-4 lg:grid-cols-3">
               <div className="flex flex-wrap gap-2">
                 {roleOptions.map((option) => (
                   <FilterButton
@@ -527,8 +527,8 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/25">
-              <div className="hidden grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] border-b border-white/10 bg-white/[0.045] px-5 py-4 text-xs uppercase tracking-[0.2em] text-slate-500 lg:grid">
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
+              <div className="hidden grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] border-b border-slate-800 bg-slate-900/80 px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
                 <span>User</span>
                 <span>Role</span>
                 <span>Status</span>
@@ -541,13 +541,13 @@ export default function AdminUsersPage() {
                   {Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={index}
-                      className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.045]"
+                      className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
                     />
                   ))}
                 </div>
               ) : users.length === 0 ? (
                 <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
                     <SlidersHorizontal size={24} />
                   </div>
                   <h3 className="mt-4 text-xl font-bold text-white">
@@ -558,7 +558,7 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-slate-800">
                   {users.map((user) => {
                     const isSelected = selectedUserId === user.user_id;
                     const isCurrentAdmin = currentAdmin?.user_id === user.user_id;
@@ -570,8 +570,8 @@ export default function AdminUsersPage() {
                         layout
                         className={`grid gap-4 p-4 transition lg:grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] lg:items-center lg:px-5 ${
                           isSelected
-                            ? "bg-cyan-300/[0.075]"
-                            : "hover:bg-white/[0.035]"
+                            ? "bg-teal-500/[0.08]"
+                            : "hover:bg-slate-900/60"
                         }`}
                       >
                         <button
@@ -579,7 +579,7 @@ export default function AdminUsersPage() {
                           onClick={() => setSelectedUserId(user.user_id)}
                           className="flex min-w-0 items-center gap-3 text-left"
                         >
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-sm font-black text-cyan-100">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-sm font-semibold text-teal-100">
                             {getInitials(user)}
                           </span>
                           <span className="min-w-0">
@@ -588,7 +588,7 @@ export default function AdminUsersPage() {
                                 {user.full_name || user.username}
                               </span>
                               {isCurrentAdmin && (
-                                <span className="rounded-full border border-purple-300/20 bg-purple-300/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-purple-200">
+                                <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-violet-200">
                                   You
                                 </span>
                               )}
@@ -603,8 +603,8 @@ export default function AdminUsersPage() {
                           <span
                             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
                               user.role === "admin"
-                                ? "border-purple-300/20 bg-purple-300/10 text-purple-200"
-                                : "border-cyan-300/20 bg-cyan-300/10 text-cyan-200"
+                                ? "border-violet-500/20 bg-violet-500/10 text-violet-200"
+                                : "border-teal-500/20 bg-teal-500/10 text-teal-200"
                             }`}
                           >
                             {user.role === "admin" ? (
@@ -643,7 +643,7 @@ export default function AdminUsersPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedUserId(user.user_id)}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.055] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200"
                             aria-label={`View ${user.username}`}
                           >
                             <Eye size={16} />
@@ -657,7 +657,7 @@ export default function AdminUsersPage() {
                                 user.is_active ? "deactivate" : "activate",
                               )
                             }
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.055] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200 disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label={
                               user.is_active
                                 ? `Deactivate ${user.username}`
@@ -679,7 +679,7 @@ export default function AdminUsersPage() {
                                 user.role === "admin" ? "demote" : "promote",
                               )
                             }
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.055] text-slate-300 transition hover:border-purple-300/20 hover:text-purple-200 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-violet-500/25 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label={
                               user.role === "admin"
                                 ? `Demote ${user.username}`
@@ -702,17 +702,17 @@ export default function AdminUsersPage() {
           </div>
         </GlassCard>
 
-        <GlassCard glow="purple">
+        <GlassCard>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-purple-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 User detail
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">
                 Account summary
               </h2>
             </div>
-            <Activity size={22} className="text-cyan-200" />
+            <Activity size={22} className="text-teal-300" />
           </div>
 
           {loadingDetail ? (
@@ -720,17 +720,17 @@ export default function AdminUsersPage() {
               {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.045]"
+                  className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
                 />
               ))}
             </div>
           ) : selectedUser ? (
             <div className="mt-6 space-y-5">
-              <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5 text-center">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-cyan-300/30 bg-black/35 text-2xl font-black text-cyan-100 shadow-[0_0_30px_rgba(34,211,238,0.2)]">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-5 text-center">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-teal-500/20 bg-teal-500/10 text-2xl font-semibold text-teal-100">
                   {getInitials(selectedUser)}
                 </div>
-                <h3 className="mt-4 text-2xl font-black text-white">
+                <h3 className="mt-4 text-2xl font-semibold text-white">
                   {selectedUser.full_name || selectedUser.username}
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
@@ -740,7 +740,7 @@ export default function AdminUsersPage() {
                   <StatusPill active={selectedUser.is_active}>
                     {selectedUser.is_active ? "Active" : "Inactive"}
                   </StatusPill>
-                  <span className="rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-1 text-xs font-semibold capitalize text-purple-200">
+                  <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold capitalize text-violet-200">
                     {selectedUser.role}
                   </span>
                 </div>
@@ -767,12 +767,12 @@ export default function AdminUsersPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                    className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
                   >
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                       {item.label}
                     </p>
-                    <p className="mt-2 text-2xl font-black text-white">
+                    <p className="mt-2 text-2xl font-semibold text-white">
                       {item.value}
                     </p>
                   </div>
@@ -780,21 +780,21 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
                   Recent activity
                 </p>
                 {activity.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-sm text-slate-400">
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
                     No recent activity found for this user.
                   </div>
                 ) : (
                   activity.map((event) => (
                     <div
                       key={event.activity_id}
-                      className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                      className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.9)]" />
+                        <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-white">
                             {event.event_type.replaceAll("_", " ")}
@@ -823,7 +823,7 @@ export default function AdminUsersPage() {
                       selectedUser.is_active ? "deactivate" : "activate",
                     )
                   }
-                  className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-xl border border-teal-500/20 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {selectedUser.is_active ? "Deactivate user" : "Activate user"}
                 </button>
@@ -836,7 +836,7 @@ export default function AdminUsersPage() {
                       selectedUser.role === "admin" ? "demote" : "promote",
                     )
                   }
-                  className="rounded-2xl border border-purple-300/20 bg-purple-300/10 px-4 py-3 text-sm font-semibold text-purple-100 transition hover:bg-purple-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {selectedUser.role === "admin"
                     ? "Demote to user"
@@ -845,7 +845,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
           ) : (
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.045] p-6 text-center">
+            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
               <p className="text-sm text-slate-400">
                 Select a user to view account details.
               </p>

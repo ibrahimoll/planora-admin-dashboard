@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
                   ? "forgot-password-success"
                   : undefined
             }
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
             placeholder="admin@planora.ai"
           />
         </div>
@@ -111,7 +111,7 @@ export default function ForgotPasswordPage() {
 
         <button
           disabled={loading}
-          className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Sending reset code..." : "Send reset code"}
         </button>

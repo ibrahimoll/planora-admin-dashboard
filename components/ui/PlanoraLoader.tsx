@@ -9,41 +9,27 @@ type PlanoraLoaderProps = {
 };
 
 export function PlanoraLoader({
-  label = "Planora AI Core",
+  label = "Loading Planora...",
   detail = "Loading project data...",
   fullScreen = true,
 }: PlanoraLoaderProps) {
   const content = (
-    <div className="relative flex flex-col items-center text-center">
-      <div className="relative h-24 w-24">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 4.6, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 rounded-full border border-slate-700 border-t-cyan-300"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-3 rounded-full border border-slate-800 border-b-cyan-200/70"
-        />
-        <motion.div
-          animate={{ scale: [0.9, 1.05, 0.9], opacity: [0.55, 1, 0.55] }}
-          transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-10 rounded-full bg-cyan-300"
+    <div className="flex flex-col items-center text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-800 bg-[#111827]">
+        <motion.span
+          animate={{ scale: [1, 0.72, 1], opacity: [0.55, 1, 0.55] }}
+          transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
+          className="h-3 w-3 rounded-full bg-teal-400"
         />
       </div>
 
-      <p className="mt-7 text-xs uppercase tracking-[0.24em] text-cyan-300">
-        {label}
-      </p>
-      <h1 className="mt-3 max-w-sm text-xl font-semibold leading-tight text-white">
-        {detail}
-      </h1>
-      <div className="mt-6 h-1 w-56 overflow-hidden rounded-full bg-white/10">
+      <p className="mt-6 text-sm font-semibold text-white">{label}</p>
+      <p className="mt-2 max-w-xs text-sm leading-6 text-slate-400">{detail}</p>
+      <div className="mt-6 h-1 w-52 overflow-hidden rounded-full bg-slate-800">
         <motion.div
           animate={{ x: ["-70%", "150%"] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="h-full w-1/2 rounded-full bg-cyan-300"
+          transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
+          className="h-full w-1/2 rounded-full bg-teal-400"
         />
       </div>
     </div>
@@ -52,9 +38,8 @@ export function PlanoraLoader({
   if (!fullScreen) return content;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080b12] px-6 text-white">
-      <div className="planora-grid absolute inset-0 opacity-60" />
-      <div className="planora-scanline relative z-10 rounded-2xl border border-cyan-300/20 bg-[#0d131d] px-10 py-9 shadow-xl shadow-black/30">
+    <main className="flex min-h-screen items-center justify-center bg-[#0b1120] px-6 text-white">
+      <div className="rounded-2xl border border-slate-800 bg-[#111827] px-10 py-9 shadow-sm shadow-black/20">
         {content}
       </div>
     </main>

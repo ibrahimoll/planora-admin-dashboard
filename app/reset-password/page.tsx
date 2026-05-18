@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
             autoComplete="email"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "reset-password-error" : undefined}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
             placeholder="admin@planora.ai"
           />
         </div>
@@ -131,7 +131,7 @@ export default function ResetPasswordPage() {
             autoComplete="one-time-code"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "reset-password-error" : undefined}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
             placeholder="123456"
           />
         </div>
@@ -152,7 +152,7 @@ export default function ResetPasswordPage() {
               autoComplete="new-password"
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "reset-password-error" : undefined}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
               placeholder="NewPass123!"
             />
           </div>
@@ -172,7 +172,7 @@ export default function ResetPasswordPage() {
               autoComplete="new-password"
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "reset-password-error" : undefined}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
               placeholder="Repeat password"
             />
           </div>
@@ -202,7 +202,7 @@ export default function ResetPasswordPage() {
 
         <button
           disabled={loading}
-          className="w-full rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 hover:shadow-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Updating password..." : "Reset admin password"}
         </button>
@@ -217,7 +217,7 @@ export default function ResetPasswordPage() {
           </Link>
           <Link
             href="/login"
-            className="font-medium text-cyan-200 transition hover:text-white"
+            className="font-medium text-teal-200 transition hover:text-white"
           >
             Back to login
           </Link>

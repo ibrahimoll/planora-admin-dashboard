@@ -14,39 +14,29 @@ type StatCardProps = {
 
 const accentMap = {
   cyan: {
-    border: "border-cyan-300/20",
-    glow: "shadow-cyan-950/10",
-    icon: "border-cyan-300/20 bg-cyan-300/10 text-cyan-200",
-    text: "text-cyan-200",
-    dot: "bg-cyan-300",
+    marker: "bg-teal-400",
+    icon: "border-teal-500/20 bg-teal-500/10 text-teal-200",
+    text: "text-teal-200",
   },
   purple: {
-    border: "border-purple-300/20",
-    glow: "shadow-purple-950/10",
-    icon: "border-purple-300/20 bg-purple-300/10 text-purple-200",
-    text: "text-purple-200",
-    dot: "bg-purple-300",
+    marker: "bg-violet-400",
+    icon: "border-violet-500/20 bg-violet-500/10 text-violet-200",
+    text: "text-violet-200",
   },
   emerald: {
-    border: "border-emerald-300/20",
-    glow: "shadow-emerald-950/10",
-    icon: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+    marker: "bg-emerald-400",
+    icon: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
     text: "text-emerald-200",
-    dot: "bg-emerald-300",
   },
   amber: {
-    border: "border-amber-300/20",
-    glow: "shadow-amber-950/10",
-    icon: "border-amber-300/20 bg-amber-300/10 text-amber-200",
+    marker: "bg-amber-400",
+    icon: "border-amber-500/20 bg-amber-500/10 text-amber-200",
     text: "text-amber-200",
-    dot: "bg-amber-300",
   },
   rose: {
-    border: "border-rose-300/20",
-    glow: "shadow-rose-950/10",
-    icon: "border-rose-300/20 bg-rose-300/10 text-rose-200",
+    marker: "bg-rose-400",
+    icon: "border-rose-500/20 bg-rose-500/10 text-rose-200",
     text: "text-rose-200",
-    dot: "bg-rose-300",
   },
 };
 
@@ -62,19 +52,19 @@ export function StatCard({
 
   return (
     <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-      className={`rounded-2xl border bg-[#0d131d]/90 p-5 shadow-xl ${tone.border} ${tone.glow}`}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="rounded-2xl border border-slate-800 bg-[#111827] p-5 shadow-sm shadow-black/20"
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
+            <span className={`h-2 w-2 rounded-full ${tone.marker}`} />
+            <p className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               {title}
             </p>
           </div>
-          <h3 className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">
+          <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-4xl">
             {value}
           </h3>
           {detail && (
@@ -82,15 +72,11 @@ export function StatCard({
           )}
         </div>
 
-        <div className={`rounded-2xl border p-3 ${tone.icon}`}>
-          <Icon size={22} />
+        <div className={`rounded-xl border p-2.5 ${tone.icon}`}>
+          <Icon size={20} />
         </div>
       </div>
-      {signal && (
-        <p className="mt-5 text-xs uppercase tracking-[0.18em] text-slate-500">
-          {signal}
-        </p>
-      )}
+      {signal && <p className="mt-5 text-sm text-slate-400">{signal}</p>}
     </motion.div>
   );
 }

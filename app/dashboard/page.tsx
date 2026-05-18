@@ -81,34 +81,34 @@ const emptyOverview: AdminDashboardOverview = {
 
 const toneMap = {
   cyan: {
-    text: "text-cyan-200",
-    bg: "bg-cyan-300/10",
-    border: "border-cyan-300/20",
-    bar: "bg-cyan-300",
+    text: "text-teal-200",
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/20",
+    bar: "bg-teal-400",
   },
   purple: {
-    text: "text-purple-200",
-    bg: "bg-purple-300/10",
-    border: "border-purple-300/20",
-    bar: "bg-purple-300",
+    text: "text-violet-200",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    bar: "bg-violet-400",
   },
   emerald: {
     text: "text-emerald-200",
-    bg: "bg-emerald-300/10",
-    border: "border-emerald-300/20",
-    bar: "bg-emerald-300",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-400",
   },
   amber: {
     text: "text-amber-200",
-    bg: "bg-amber-300/10",
-    border: "border-amber-300/20",
-    bar: "bg-amber-300",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    bar: "bg-amber-400",
   },
   rose: {
     text: "text-rose-200",
-    bg: "bg-rose-300/10",
-    border: "border-rose-300/20",
-    bar: "bg-rose-300",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    bar: "bg-rose-400",
   },
 };
 
@@ -280,25 +280,25 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 pb-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GlassCard className="p-0" glow="cyan">
+        <GlassCard className="p-0">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
-                <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
                   <Activity size={15} />
                   System overview
                 </p>
-                <h1 className="mt-5 text-4xl font-bold leading-tight text-white sm:text-5xl">
-                  Project operations at a glance
+                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                  Project operations overview
                 </h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-                  Live admin summary from Planora backend data: users, projects,
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+                  A current admin summary from Planora data: users, projects,
                   tasks, risk records, and recent activity.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                   Last updated
                 </p>
                 <p className="mt-1 font-semibold text-white">
@@ -312,7 +312,7 @@ export default function DashboardPage() {
         <GlassCard glow={riskTone}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Risk status
               </p>
               <h2 className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}>
@@ -329,9 +329,7 @@ export default function DashboardPage() {
                 {formatCount(tasks.overdue_tasks)} overdue tasks.
               </p>
             </div>
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}
-            >
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}>
               <AlertTriangle size={22} />
             </div>
           </div>
@@ -339,7 +337,7 @@ export default function DashboardPage() {
       </section>
 
       {error && (
-        <GlassCard className="border-amber-300/20 bg-amber-500/10" glow="rose">
+        <GlassCard className="border-amber-500/20 bg-amber-500/10" glow="rose">
           <div className="flex items-center gap-3 text-amber-100">
             <AlertTriangle size={20} />
             <p className="text-sm">{error}</p>
@@ -399,13 +397,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
-        <GlassCard glow="cyan">
+        <GlassCard>
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Project progress
             </p>
             <h2 className="text-2xl font-bold text-white">
-              Delivery status from real project data
+              Project progress
             </h2>
             <p className="text-sm leading-6 text-slate-400">
               The bars below use the current overview endpoint. Empty values
@@ -440,17 +438,17 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
 
-        <GlassCard glow="purple">
+        <GlassCard>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 System status
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">
                 Admin data health
               </h2>
             </div>
-            <ShieldCheck size={22} className="text-cyan-200" />
+            <ShieldCheck size={22} className="text-teal-300" />
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -475,16 +473,16 @@ export default function DashboardPage() {
               }
               detail={`${formatCount(notifications.total_notifications)} notifications in total.`}
               icon={Bell}
-              tone="purple"
+              tone="cyan"
             />
           </div>
         </GlassCard>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <GlassCard glow="cyan">
+        <GlassCard>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Task progress
             </p>
             <h2 className="mt-2 text-2xl font-bold text-white">
@@ -503,7 +501,7 @@ export default function DashboardPage() {
               label="In progress"
               value={tasks.in_progress_tasks}
               total={tasks.total_tasks}
-              tone="purple"
+              tone="cyan"
             />
             <ProgressRow
               label="Completed"
@@ -522,11 +520,11 @@ export default function DashboardPage() {
 
         <GlassCard glow={riskTone}>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Recent activity
             </p>
             <h2 className="mt-2 text-2xl font-bold text-white">
-              Latest backend events
+              Latest activity
             </h2>
           </div>
 
@@ -535,17 +533,17 @@ export default function DashboardPage() {
               Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
+                  className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
                 />
               ))
             ) : activity.length > 0 ? (
               activity.map((event) => (
                 <div
                   key={event.activity_id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                  className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-300" />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-400" />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-white">
                         {event.event_type.replaceAll("_", " ")}
@@ -562,7 +560,7 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm leading-6 text-slate-400">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 text-sm leading-6 text-slate-400">
                 {activityError || "No recent activity yet."}
               </div>
             )}

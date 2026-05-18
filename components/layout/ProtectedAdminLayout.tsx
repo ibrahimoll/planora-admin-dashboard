@@ -55,15 +55,13 @@ export function ProtectedAdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#080b12] text-white">
-      <div className="planora-grid fixed inset-0 opacity-50" />
-
-      <div className="relative z-10 flex min-h-screen">
+    <main className="min-h-screen overflow-x-hidden bg-[#0b1120] text-white">
+      <div className="flex min-h-screen">
         <AdminSidebar />
 
         <section className="flex min-h-screen min-w-0 flex-1 flex-col">
           <AdminTopbar />
-          <div className="flex-1 px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
+          <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
             {children}
           </div>
         </section>
