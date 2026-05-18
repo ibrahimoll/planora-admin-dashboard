@@ -4,6 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
+import { api } from "@/lib/api";
+import { clearAdminToken, getAdminToken } from "@/lib/auth";
+
+type CurrentUser = {
+  role: "user" | "admin";
+  is_active?: boolean;
+  is_email_verified?: boolean;
+};
+
+function isActiveAdmin(user: CurrentUser) {
+  return (
+    user.role === "admin" &&
+    user.is_active !== false &&
+    user.is_email_verified !== false
+  );
+}
 
 export default function ProtectedAdminLayout({
   children,
@@ -17,17 +33,39 @@ export default function ProtectedAdminLayout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const token =
-      localStorage.getItem("access_token") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("admin_token");
+    let isMounted = true;
 
-    if (!token) {
-      router.replace("/login");
-      return;
+    async function checkAdminAccess() {
+      const token = getAdminToken();
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const response = await api.get<CurrentUser>("/auth/me");
+
+        if (!isActiveAdmin(response.data)) {
+          clearAdminToken();
+          router.replace("/login");
+          return;
+        }
+
+        if (isMounted) {
+          setCheckingAuth(false);
+        }
+      } catch {
+        clearAdminToken();
+        router.replace("/login");
+      }
     }
 
-    setCheckingAuth(false);
+    checkAdminAccess();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   function toggleSidebar() {

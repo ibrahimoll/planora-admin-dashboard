@@ -70,23 +70,23 @@ export default function AdminSidebar({
       <aside
         className={[
           desktopOpen ? "hidden lg:flex" : "hidden",
-          "h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
+          "sticky top-0 z-50 h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
         ].join(" ")}
       >
         <SidebarContent pathname={pathname} />
       </aside>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[100] lg:hidden">
           <button
             type="button"
             aria-label="Close sidebar overlay"
             onClick={onCloseMobile}
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
-          <aside className="relative flex h-full w-[84%] max-w-[300px] flex-col border-r border-[#1d2942] bg-[#0d1424] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1d2942] px-5 py-5">
+          <aside className="relative flex h-full w-[84%] max-w-[300px] animate-[planoraSidebarIn_180ms_ease-out] flex-col border-r border-[#1d2942] bg-[#0d1424] shadow-2xl">
+            <div className="flex h-[104px] items-center justify-between border-b border-[#1d2942] px-5">
               <LogoBlock />
 
               <button
@@ -123,7 +123,7 @@ function SidebarContent({
   return (
     <>
       {!mobile ? (
-        <div className="border-b border-[#1d2942] px-6 py-5">
+        <div className="flex h-[104px] items-center border-b border-[#1d2942] px-6">
           <LogoBlock />
         </div>
       ) : null}
@@ -140,15 +140,20 @@ function SidebarContent({
               href={item.href}
               onClick={onNavigate}
               className={[
-                "flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-bold transition",
+                "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200",
                 active
                   ? "bg-[#08313c] text-white shadow-[0_0_0_1px_rgba(32,214,199,0.16)]"
-                  : "text-[#a9bad7] hover:bg-[#111d31] hover:text-white",
+                  : "text-[#a9bad7] hover:translate-x-1 hover:bg-[#111d31] hover:text-white",
               ].join(" ")}
             >
               <Icon
                 size={20}
-                className={active ? "text-[#20d6c7]" : "text-[#7182a5]"}
+                className={[
+                  "transition-colors duration-200",
+                  active
+                    ? "text-[#20d6c7]"
+                    : "text-[#7182a5] group-hover:text-[#20d6c7]",
+                ].join(" ")}
               />
               {item.label}
             </Link>
@@ -157,8 +162,16 @@ function SidebarContent({
       </nav>
 
       <div className="p-5">
-        <div className="rounded-2xl border border-[#1d2942] bg-[#080d1a] p-5">
-          <p className="text-sm font-black text-white">System status</p>
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 p-5">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-40" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-300" />
+            </span>
+
+            <p className="text-sm font-semibold text-white">System status</p>
+          </div>
+
           <p className="mt-3 text-sm text-[#a9bad7]">
             Protected routes active
           </p>
