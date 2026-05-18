@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, LogOut, Search, ShieldCheck, Users } from "lucide-react";
+import { Bell, LogOut, Search, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { clearAdminToken } from "@/lib/auth";
 
