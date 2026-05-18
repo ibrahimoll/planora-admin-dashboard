@@ -1,5 +1,6 @@
 "use client";
 
+import PlanoraLogo from "@/components/PlanoraLogo";
 import {
   AlertTriangle,
   BarChart3,
@@ -7,7 +8,6 @@ import {
   LayoutDashboard,
   ListChecks,
   Settings,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -49,19 +49,14 @@ export function AdminSidebar() {
   return (
     <aside className="hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:block">
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-slate-950">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-semibold text-white">Planora</p>
-            <p className="text-sm text-slate-400">Admin dashboard</p>
-          </div>
+        <div className="px-2">
+          <PlanoraLogo href="/dashboard" />
         </div>
 
         <nav className="mt-8 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+
             const active =
               item.href === "/dashboard"
                 ? pathname === item.href
@@ -78,6 +73,7 @@ export function AdminSidebar() {
                     <Icon size={18} />
                     {item.label}
                   </span>
+
                   <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px]">
                     Soon
                   </span>
@@ -107,6 +103,7 @@ export function AdminSidebar() {
 
         <div className="mt-auto rounded-2xl border border-slate-800 bg-slate-950/45 p-4">
           <p className="text-sm font-medium text-white">System status</p>
+
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             Protected routes active
