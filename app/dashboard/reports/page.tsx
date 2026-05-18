@@ -328,7 +328,7 @@ export default function AdminReportsPage() {
                   fetchProjects();
                   if (selectedProjectId) fetchReport(selectedProjectId);
                 }}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-teal-500/30 hover:text-teal-100"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
               >
                 <RefreshCw size={16} />
                 Refresh
@@ -371,7 +371,9 @@ export default function AdminReportsPage() {
                       onChange={(event) =>
                         setSelectedProjectId(Number(event.target.value))
                       }
-                      disabled={loadingProjects || filteredProjects.length === 0}
+                      disabled={
+                        loadingProjects || filteredProjects.length === 0
+                      }
                       className="report-select w-full rounded-xl border border-teal-500/70 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-400"
                     >
                       {filteredProjects.map((project) => (
@@ -686,7 +688,7 @@ export default function AdminReportsPage() {
                                     Assigned to:{" "}
                                     {assignee
                                       ? assignee.full_name || assignee.username
-                                      : task.assigned_to ?? "Unassigned"}
+                                      : (task.assigned_to ?? "Unassigned")}
                                   </p>
                                 </div>
 
