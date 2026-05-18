@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
-  Clock3,
   FolderKanban,
   ListChecks,
   RefreshCw,
@@ -113,6 +112,10 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function isOverdue(deadline: string, status: AdminProjectStatus) {
+  return status !== "completed" && new Date(deadline).getTime() < Date.now();
+}
+
 function getDeadlineText(deadline: string, status: AdminProjectStatus) {
   if (status === "completed") return "Completed";
 
@@ -124,11 +127,8 @@ function getDeadlineText(deadline: string, status: AdminProjectStatus) {
   if (days < 0) return `${Math.abs(days)} days late`;
   if (days === 0) return "Due today";
   if (days === 1) return "1 day left";
-  return `${days} days left`;
-}
 
-function isOverdue(deadline: string, status: AdminProjectStatus) {
-  return status !== "completed" && new Date(deadline).getTime() < Date.now();
+  return `${days} days left`;
 }
 
 function getRiskClasses(project: AdminProjectSummary | AdminProjectDetail) {
@@ -176,9 +176,9 @@ function FilterButton<T extends string>({
     <button
       type="button"
       onClick={() => onChange(value)}
-      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+      className={`inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full border px-4 text-sm font-medium transition ${
         active
-          ? "border-teal-500/30 bg-teal-500/15 text-teal-100"
+          ? "border-teal-500/35 bg-teal-500/15 text-teal-100"
           : "border-slate-800 bg-slate-950/45 text-slate-400 hover:border-teal-500/25 hover:text-teal-100"
       }`}
     >
@@ -246,8 +246,7 @@ export default function AdminProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [newStatus, setNewStatus] =
-    useState<AdminProjectStatus>("not_started");
+  const [newStatus, setNewStatus] = useState<AdminProjectStatus>("not_started");
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
@@ -273,11 +272,19 @@ export default function AdminProjectsPage() {
   }, [projects]);
 
   const groupedProjects = useMemo(() => {
-    return statusOrder.map((status) => ({
-      status,
-      projects: projects.filter((project) => project.status === status),
-    }));
-  }, [projects]);
+    return statusOrder
+      .map((status) => ({
+        status,
+        projects: projects.filter((project) => project.status === status),
+      }))
+      .filter((group) => {
+        if (statusFilter !== "all") {
+          return group.status === statusFilter;
+        }
+
+        return group.projects.length > 0;
+      });
+  }, [projects, statusFilter]);
 
   async function fetchProjects() {
     const response = await api.get<AdminProjectSummary[]>("/admin/projects", {
@@ -465,7 +472,7 @@ export default function AdminProjectsPage() {
               <div>
                 <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
                   <FolderKanban size={15} />
-                  Portfolio board
+                  Portfolio
                 </p>
 
                 <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
@@ -543,20 +550,20 @@ export default function AdminProjectsPage() {
       )}
 
       <Reveal delay={0.06}>
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <section className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_25rem]">
           <GlassCard>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-                    Board
+                    Projects
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">
                     Projects by status
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Cards are grouped by project status so delivery problems are
-                    easier to spot.
+                    Projects are grouped vertically so cards stay visible and
+                    easy to select.
                   </p>
                 </div>
 
@@ -566,13 +573,13 @@ export default function AdminProjectsPage() {
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                    placeholder="Search projects..."
+                    placeholder="Search title or description..."
                   />
                 </div>
               </div>
 
-              <div className="grid gap-3 border-y border-slate-800 py-4 xl:grid-cols-2">
-                <div className="flex flex-wrap gap-2">
+              <div className="grid gap-4 border-y border-slate-800 py-4 xl:grid-cols-[minmax(0,1fr)_1px_auto] xl:items-start">
+                <div className="flex flex-wrap items-start gap-2">
                   {statusFilterOptions.map((option) => (
                     <FilterButton
                       key={option.value}
@@ -584,7 +591,12 @@ export default function AdminProjectsPage() {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div
+                  aria-hidden="true"
+                  className="hidden h-full min-h-10 w-px bg-slate-800 xl:block"
+                />
+
+                <div className="flex flex-wrap items-start gap-2 xl:justify-end">
                   {typeOptions.map((option) => (
                     <FilterButton
                       key={option.value}
@@ -598,11 +610,11 @@ export default function AdminProjectsPage() {
               </div>
 
               {loadingProjects ? (
-                <div className="flex gap-4 overflow-x-auto pb-2">
-                  {statusOrder.map((status) => (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
                     <div
-                      key={status}
-                      className="min-h-72 w-72 shrink-0 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
+                      key={index}
+                      className="h-56 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
                     />
                   ))}
                 </div>
@@ -619,153 +631,145 @@ export default function AdminProjectsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex min-w-max gap-4">
-                    {groupedProjects.map((group) => (
-                      <section
-                        key={group.status}
-                        className="w-72 shrink-0 rounded-2xl border border-slate-800 bg-slate-950/35 p-3"
-                      >
-                        <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                          <div>
-                            <p className="font-semibold text-white">
-                              {statusLabels[group.status]}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {group.projects.length} projects
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-xs ${statusClasses[group.status]}`}
-                          >
-                            {group.projects.length}
-                          </span>
+                <div className="space-y-5">
+                  {groupedProjects.map((group) => (
+                    <section
+                      key={group.status}
+                      className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4"
+                    >
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-white">
+                            {statusLabels[group.status]}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {group.projects.length} project
+                            {group.projects.length === 1 ? "" : "s"}
+                          </p>
                         </div>
 
-                        <div className="space-y-3">
-                          {group.projects.length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-slate-800 p-4 text-sm leading-6 text-slate-500">
-                              No projects in this status.
-                            </div>
-                          ) : (
-                            group.projects.map((project) => {
-                              const selected =
-                                selectedProjectId === project.project_id;
-                              const overdue = isOverdue(
-                                project.deadline,
-                                project.status,
-                              );
-                              const progress = clampPercent(
-                                project.task_stats.completion_percentage,
-                              );
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[group.status]}`}
+                        >
+                          {group.projects.length}
+                        </span>
+                      </div>
 
-                              return (
-                                <button
-                                  key={project.project_id}
-                                  type="button"
-                                  onClick={() =>
-                                    setSelectedProjectId(project.project_id)
-                                  }
-                                  className={`w-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
-                                    selected
-                                      ? "border-teal-500/40 bg-teal-500/10"
-                                      : "border-slate-800 bg-slate-900/60 hover:border-teal-500/25"
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {group.projects.map((project) => {
+                          const selected =
+                            selectedProjectId === project.project_id;
+                          const overdue = isOverdue(
+                            project.deadline,
+                            project.status,
+                          );
+                          const progress = clampPercent(
+                            project.task_stats.completion_percentage,
+                          );
+
+                          return (
+                            <button
+                              key={project.project_id}
+                              type="button"
+                              onClick={() =>
+                                setSelectedProjectId(project.project_id)
+                              }
+                              className={`group rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                                selected
+                                  ? "border-teal-400 bg-teal-500/15 ring-1 ring-teal-400/30"
+                                  : "border-slate-800 bg-slate-900/60 hover:border-teal-500/25"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="line-clamp-2 font-semibold text-white group-hover:text-teal-100">
+                                    {project.title}
+                                  </p>
+                                  <p className="mt-1 truncate text-sm text-slate-400">
+                                    {project.owner.full_name ||
+                                      project.owner.username}
+                                  </p>
+                                </div>
+
+                                <span className="shrink-0 rounded-full border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-xs capitalize text-slate-300">
+                                  {project.project_type}
+                                </span>
+                              </div>
+
+                              <div className="mt-4">
+                                <ProjectProgress value={progress} />
+                              </div>
+
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 text-xs ${getRiskClasses(
+                                    project,
+                                  )}`}
+                                >
+                                  {project.latest_risk
+                                    ? `${project.latest_risk.risk_level} risk`
+                                    : "No risk"}
+                                </span>
+
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 text-xs ${
+                                    overdue
+                                      ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                                      : "border-slate-700 bg-slate-950/60 text-slate-300"
                                   }`}
                                 >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="line-clamp-2 font-semibold text-white">
-                                        {project.title}
-                                      </p>
-                                      <p className="mt-1 truncate text-sm text-slate-400">
-                                        {project.owner.full_name ||
-                                          project.owner.username}
-                                      </p>
-                                    </div>
+                                  {getDeadlineText(
+                                    project.deadline,
+                                    project.status,
+                                  )}
+                                </span>
+                              </div>
 
-                                    <span className="shrink-0 rounded-full border border-slate-700 bg-slate-950/60 px-2.5 py-1 text-xs capitalize text-slate-300">
-                                      {project.project_type}
-                                    </span>
-                                  </div>
+                              <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <p className="text-slate-500">Tasks</p>
+                                  <p className="mt-1 font-semibold text-white">
+                                    {project.task_stats.completed_tasks}/
+                                    {project.task_stats.total_tasks}
+                                  </p>
+                                </div>
 
-                                  <div className="mt-4">
-                                    <ProjectProgress value={progress} />
-                                  </div>
+                                <div>
+                                  <p className="text-slate-500">Blocked</p>
+                                  <p
+                                    className={`mt-1 font-semibold ${
+                                      project.task_stats.blocked_tasks > 0
+                                        ? "text-amber-200"
+                                        : "text-white"
+                                    }`}
+                                  >
+                                    {project.task_stats.blocked_tasks}
+                                  </p>
+                                </div>
 
-                                  <div className="mt-4 flex flex-wrap gap-2">
-                                    <span
-                                      className={`rounded-full border px-2.5 py-1 text-xs ${getRiskClasses(
-                                        project,
-                                      )}`}
-                                    >
-                                      {project.latest_risk
-                                        ? `${project.latest_risk.risk_level} risk`
-                                        : "No risk"}
-                                    </span>
-
-                                    <span
-                                      className={`rounded-full border px-2.5 py-1 text-xs ${
-                                        overdue
-                                          ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-                                          : "border-slate-700 bg-slate-950/60 text-slate-300"
-                                      }`}
-                                    >
-                                      {getDeadlineText(
-                                        project.deadline,
-                                        project.status,
-                                      )}
-                                    </span>
-                                  </div>
-
-                                  <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                                    <div>
-                                      <p className="text-slate-500">Tasks</p>
-                                      <p className="mt-1 font-semibold text-white">
-                                        {project.task_stats.completed_tasks}/
-                                        {project.task_stats.total_tasks}
-                                      </p>
-                                    </div>
-
-                                    <div>
-                                      <p className="text-slate-500">Blocked</p>
-                                      <p
-                                        className={`mt-1 font-semibold ${
-                                          project.task_stats.blocked_tasks > 0
-                                            ? "text-amber-200"
-                                            : "text-white"
-                                        }`}
-                                      >
-                                        {project.task_stats.blocked_tasks}
-                                      </p>
-                                    </div>
-
-                                    <div>
-                                      <p className="text-slate-500">Due</p>
-                                      <p
-                                        className={`mt-1 font-semibold ${
-                                          overdue
-                                            ? "text-rose-200"
-                                            : "text-white"
-                                        }`}
-                                      >
-                                        {formatDate(project.deadline)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
+                                <div>
+                                  <p className="text-slate-500">Due</p>
+                                  <p
+                                    className={`mt-1 font-semibold ${
+                                      overdue ? "text-rose-200" : "text-white"
+                                    }`}
+                                  >
+                                    {formatDate(project.deadline)}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               )}
             </div>
           </GlassCard>
 
-          <GlassCard className="xl:sticky xl:top-24 xl:self-start">
+          <GlassCard className="2xl:sticky 2xl:top-24 2xl:self-start">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
