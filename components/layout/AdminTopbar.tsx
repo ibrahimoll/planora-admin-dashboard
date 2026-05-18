@@ -1,6 +1,17 @@
 "use client";
 
 import {
+  ADMIN_PROFILE_UPDATED_EVENT,
+  AdminUser,
+  buildProfileImageUrl,
+  getAdminDisplayName,
+  getAdminInitials,
+  getApiBaseUrl,
+  getSavedAdminProfile,
+  saveAdminProfile,
+} from "@/lib/adminProfileSync";
+import { clearAdminToken } from "@/lib/auth";
+import {
   Bell,
   CheckCircle2,
   ChevronDown,
@@ -22,12 +33,16 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  ADMIN_PROFILE_UPDATED_EVENT,
-  AdminUser,
-  getSavedAdminProfile,
-  saveAdminProfile,
-} from "@/lib/adminProfileSync";
+
+type AdminNotification = {
+  id: number;
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+};
+
+const ADMIN_NOTIFICATIONS_STORAGE_KEY = "planora-admin-notifications";
 
 const searchItems = [
   {
@@ -69,12 +84,12 @@ const searchItems = [
   {
     title: "Settings",
     href: "/dashboard/settings",
-    description: "Admin dashboard settings",
+    description: "Admin dashboard settings and profile",
     keywords: ["settings", "preferences", "configuration", "profile"],
   },
 ];
 
-const initialNotifications = [
+const initialNotifications: AdminNotification[] = [
   {
     id: 1,
     title: "Admin overview synced",
@@ -109,58 +124,44 @@ function getStoredToken() {
   );
 }
 
-function getApiBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://localhost:8000"
+function loadSavedNotifications(): AdminNotification[] {
+  if (typeof window === "undefined") {
+    return initialNotifications;
+  }
+
+  const rawValue = localStorage.getItem(ADMIN_NOTIFICATIONS_STORAGE_KEY);
+
+  if (!rawValue) {
+    return initialNotifications;
+  }
+
+  try {
+    const savedNotifications = JSON.parse(rawValue) as AdminNotification[];
+
+    const savedById = new Map(
+      savedNotifications.map((notification) => [notification.id, notification]),
+    );
+
+    return initialNotifications.map((notification) => {
+      const savedNotification = savedById.get(notification.id);
+
+      return {
+        ...notification,
+        unread: savedNotification?.unread ?? notification.unread,
+      };
+    });
+  } catch {
+    return initialNotifications;
+  }
+}
+
+function saveNotifications(notifications: AdminNotification[]) {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem(
+    ADMIN_NOTIFICATIONS_STORAGE_KEY,
+    JSON.stringify(notifications),
   );
-}
-
-function buildProfileImageUrl(profilePic?: string | null, version?: number) {
-  if (!profilePic) return null;
-
-  let imageUrl = profilePic;
-
-  if (
-    !profilePic.startsWith("http://") &&
-    !profilePic.startsWith("https://") &&
-    !profilePic.startsWith("data:")
-  ) {
-    imageUrl = profilePic.startsWith("/")
-      ? `${getApiBaseUrl()}${profilePic}`
-      : `${getApiBaseUrl()}/${profilePic}`;
-  }
-
-  if (imageUrl.startsWith("data:")) {
-    return imageUrl;
-  }
-
-  const separator = imageUrl.includes("?") ? "&" : "?";
-  return `${imageUrl}${separator}v=${version || Date.now()}`;
-}
-
-function getAdminDisplayName(adminUser: AdminUser | null) {
-  return (
-    adminUser?.full_name ||
-    adminUser?.username ||
-    adminUser?.email?.split("@")[0] ||
-    "Planora Admin"
-  );
-}
-
-function getAdminInitials(adminUser: AdminUser | null) {
-  const name = getAdminDisplayName(adminUser).trim();
-
-  if (!name) return "A";
-
-  const parts = name.split(" ").filter(Boolean);
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 1).toUpperCase();
-  }
-
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
 export function AdminTopbar() {
@@ -177,7 +178,10 @@ export function AdminTopbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+
+  const [notificationsHydrated, setNotificationsHydrated] = useState(false);
+  const [notifications, setNotifications] =
+    useState<AdminNotification[]>(initialNotifications);
 
   const filteredSearchItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -200,10 +204,14 @@ export function AdminTopbar() {
   const adminName = getAdminDisplayName(adminUser);
   const adminEmail = adminUser?.email || "admin@planora.local";
   const adminInitials = getAdminInitials(adminUser);
-  const profileImageUrl = buildProfileImageUrl(
-    adminUser?.profile_pic,
-    profileImageVersion,
-  );
+
+  const profileImageBaseUrl = buildProfileImageUrl(adminUser?.profile_pic);
+  const profileImageUrl =
+    profileImageBaseUrl && !profileImageBaseUrl.startsWith("data:")
+      ? `${profileImageBaseUrl}${
+          profileImageBaseUrl.includes("?") ? "&" : "?"
+        }v=${profileImageVersion}`
+      : profileImageBaseUrl;
 
   const refreshCurrentAdmin = useCallback(async () => {
     const token = getStoredToken();
@@ -232,6 +240,17 @@ export function AdminTopbar() {
   }, []);
 
   useEffect(() => {
+    setNotifications(loadSavedNotifications());
+    setNotificationsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!notificationsHydrated) return;
+
+    saveNotifications(notifications);
+  }, [notifications, notificationsHydrated]);
+
+  useEffect(() => {
     const savedAdmin = getSavedAdminProfile();
 
     if (savedAdmin) {
@@ -253,14 +272,27 @@ export function AdminTopbar() {
     }
 
     function handleStorageChange(event: StorageEvent) {
-      if (event.key !== "current_admin" || !event.newValue) return;
+      if (event.key === "current_admin" && event.newValue) {
+        try {
+          const updatedAdmin = JSON.parse(event.newValue) as AdminUser;
 
-      try {
-        const updatedAdmin = JSON.parse(event.newValue) as AdminUser;
-        setAdminUser(updatedAdmin);
-        setProfileImageVersion(Date.now());
-      } catch {
-        // Ignore invalid localStorage values.
+          setAdminUser(updatedAdmin);
+          setProfileImageVersion(Date.now());
+        } catch {
+          // Ignore bad localStorage values.
+        }
+      }
+
+      if (event.key === ADMIN_NOTIFICATIONS_STORAGE_KEY && event.newValue) {
+        try {
+          const updatedNotifications = JSON.parse(
+            event.newValue,
+          ) as AdminNotification[];
+
+          setNotifications(updatedNotifications);
+        } catch {
+          // Ignore bad localStorage values.
+        }
       }
     }
 
@@ -354,6 +386,19 @@ export function AdminTopbar() {
     );
   }
 
+  function markNotificationRead(notificationId: number) {
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) =>
+        notification.id === notificationId
+          ? {
+              ...notification,
+              unread: false,
+            }
+          : notification,
+      ),
+    );
+  }
+
   function toggleNotifications(
     event: MouseEvent<HTMLButtonElement> | TouchEvent<HTMLButtonElement>,
   ) {
@@ -373,13 +418,59 @@ export function AdminTopbar() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("token");
-    localStorage.removeItem("planora_token");
-    localStorage.removeItem("current_admin");
-    localStorage.removeItem("admin_user");
-    router.push("/login");
+    setSearchOpen(false);
+    setNotificationsOpen(false);
+    setProfileOpen(false);
+
+    try {
+      clearAdminToken();
+    } catch {
+      // Fallback cleanup below still runs.
+    }
+
+    const localStorageKeysToRemove = [
+      "admin_token",
+      "access_token",
+      "token",
+      "planora_token",
+      "planora_admin_token",
+      "current_admin",
+      "admin_user",
+      "current_user",
+      "user",
+      "planora_user",
+    ];
+
+    for (const key of localStorageKeysToRemove) {
+      localStorage.removeItem(key);
+    }
+
+    const sessionStorageKeysToRemove = [
+      "admin_token",
+      "access_token",
+      "token",
+      "planora_token",
+      "planora_admin_token",
+    ];
+
+    for (const key of sessionStorageKeysToRemove) {
+      sessionStorage.removeItem(key);
+    }
+
+    const authCookiesToRemove = [
+      "admin_token",
+      "access_token",
+      "token",
+      "planora_token",
+      "planora_admin_token",
+    ];
+
+    for (const cookieName of authCookiesToRemove) {
+      document.cookie = `${cookieName}=; Max-Age=0; path=/;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+    }
+
+    window.location.replace("/login");
   }
 
   return (
@@ -494,7 +585,8 @@ export function AdminTopbar() {
                 <button
                   type="button"
                   onClick={markAllNotificationsRead}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-teal-300 transition hover:bg-teal-400/10"
+                  disabled={unreadCount === 0}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-teal-300 transition hover:bg-teal-400/10 disabled:cursor-not-allowed disabled:text-slate-600 disabled:hover:bg-transparent"
                 >
                   Mark all read
                 </button>
@@ -502,9 +594,11 @@ export function AdminTopbar() {
 
               <div className="max-h-96 overflow-y-auto p-2">
                 {notifications.map((notification) => (
-                  <div
+                  <button
                     key={notification.id}
-                    className="rounded-xl px-3 py-3 transition hover:bg-slate-900"
+                    type="button"
+                    onClick={() => markNotificationRead(notification.id)}
+                    className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-900"
                   >
                     <div className="flex gap-3">
                       <div
@@ -536,7 +630,7 @@ export function AdminTopbar() {
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

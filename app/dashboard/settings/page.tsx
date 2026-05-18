@@ -4,6 +4,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
 import { api } from "@/lib/api";
+import { saveAdminProfile } from "@/lib/adminProfileSync";
 import {
   Camera,
   CheckCircle2,
@@ -22,7 +23,10 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.0.110:8000";
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://192.168.0.110:8000";
 
 type AdminProfile = {
   user_id: number;
@@ -60,13 +64,13 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 
 function getInitials(name: string, username: string) {
   const source = name.trim() || username.trim() || "Admin";
+  const parts = source.split(" ").filter(Boolean);
 
-  return source
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+
+  return source.slice(0, 2).toUpperCase() || "A";
 }
 
 function formatDate(value: string) {
@@ -79,18 +83,26 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function getProfileImageSrc(profilePic: string | null | undefined) {
+function getProfileImageSrc(
+  profilePic: string | null | undefined,
+  version: number,
+) {
   if (!profilePic) return "";
 
-  if (
-    profilePic.startsWith("http://") ||
-    profilePic.startsWith("https://") ||
-    profilePic.startsWith("data:")
-  ) {
+  if (profilePic.startsWith("data:")) {
     return profilePic;
   }
 
-  return `${API_BASE_URL}${profilePic}`;
+  let imageUrl = profilePic;
+
+  if (!profilePic.startsWith("http://") && !profilePic.startsWith("https://")) {
+    imageUrl = profilePic.startsWith("/")
+      ? `${API_BASE_URL}${profilePic}`
+      : `${API_BASE_URL}/${profilePic}`;
+  }
+
+  const separator = imageUrl.includes("?") ? "&" : "?";
+  return `${imageUrl}${separator}v=${version}`;
 }
 
 export default function AdminSettingsPage() {
@@ -120,11 +132,16 @@ export default function AdminSettingsPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [profileImageVersion, setProfileImageVersion] = useState(Date.now());
+
   const initials = useMemo(() => {
     return getInitials(fullName, username);
   }, [fullName, username]);
 
-  const profileImageSrc = getProfileImageSrc(profile?.profile_pic);
+  const profileImageSrc = getProfileImageSrc(
+    profile?.profile_pic,
+    profileImageVersion,
+  );
 
   const hasProfileChanges = useMemo(() => {
     if (!profile) return false;
@@ -135,6 +152,15 @@ export default function AdminSettingsPage() {
     );
   }, [profile, username, fullName]);
 
+  function applyProfileUpdate(updatedProfile: AdminProfile) {
+    setProfile(updatedProfile);
+    setUsername(updatedProfile.username);
+    setFullName(updatedProfile.full_name);
+    setProfileImageVersion(Date.now());
+
+    saveAdminProfile(updatedProfile);
+  }
+
   async function loadProfile() {
     setLoadingProfile(true);
     setProfileError("");
@@ -142,11 +168,7 @@ export default function AdminSettingsPage() {
 
     try {
       const response = await api.get<AdminProfile>("/profile");
-      const data = response.data;
-
-      setProfile(data);
-      setUsername(data.username);
-      setFullName(data.full_name);
+      applyProfileUpdate(response.data);
     } catch (requestError) {
       setProfileError(
         getApiErrorMessage(requestError, "Unable to load profile settings."),
@@ -183,9 +205,7 @@ export default function AdminSettingsPage() {
         full_name: cleanFullName,
       });
 
-      setProfile(response.data.user);
-      setUsername(response.data.user.username);
-      setFullName(response.data.user.full_name);
+      applyProfileUpdate(response.data.user);
       setProfileNotice(response.data.message);
     } catch (requestError) {
       setProfileError(
@@ -234,9 +254,7 @@ export default function AdminSettingsPage() {
         },
       );
 
-      setProfile(response.data.user);
-      setUsername(response.data.user.username);
-      setFullName(response.data.user.full_name);
+      applyProfileUpdate(response.data.user);
       setProfileNotice(response.data.message);
     } catch (requestError) {
       setProfileError(
@@ -257,7 +275,7 @@ export default function AdminSettingsPage() {
         profile_pic: "",
       });
 
-      setProfile(response.data.user);
+      applyProfileUpdate(response.data.user);
       setProfileNotice("Profile picture removed successfully.");
     } catch (requestError) {
       setProfileError(
