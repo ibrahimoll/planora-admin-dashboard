@@ -18,6 +18,7 @@ import {
   FolderKanban,
   ListChecks,
   Loader2,
+  Printer,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -129,7 +130,9 @@ export default function AdminReportsPage() {
       setProjects(response.data);
 
       if (response.data.length > 0) {
-        setSelectedProjectId((current) => current ?? response.data[0].project_id);
+        setSelectedProjectId(
+          (current) => current ?? response.data[0].project_id,
+        );
       }
     } catch (requestError) {
       setError(
@@ -166,6 +169,15 @@ export default function AdminReportsPage() {
     }
   }
 
+  function handlePrintReport() {
+    if (!report) {
+      setError("Generate a project report before exporting.");
+      return;
+    }
+
+    window.print();
+  }
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -178,7 +190,51 @@ export default function AdminReportsPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-8">
+      <style>{`
+        @page {
+          margin: 16mm;
+        }
+
+        @media print {
+          body {
+            background: white !important;
+          }
+
+          aside,
+          nav,
+          .print-hide {
+            display: none !important;
+          }
+
+          main {
+            padding: 0 !important;
+          }
+
+          .print-report {
+            background: white !important;
+            color: #0f172a !important;
+          }
+
+          .print-report *,
+          .print-report *::before,
+          .print-report *::after {
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          .print-report [class*="bg-"] {
+            background: white !important;
+          }
+
+          .print-report [class*="rounded"] {
+            break-inside: avoid;
+          }
+        }
+      `}</style>
+
+      <div className="print-report space-y-8">
         <Reveal>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
@@ -194,17 +250,29 @@ export default function AdminReportsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                fetchProjects();
-                if (selectedProjectId) fetchReport(selectedProjectId);
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-teal-500/30 hover:text-teal-100"
-            >
-              <RefreshCw size={16} />
-              Refresh
-            </button>
+            <div className="print-hide flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handlePrintReport}
+                disabled={!report || loadingReport}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/25 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:border-teal-400/40 hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Printer size={16} />
+                Export / Print
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  fetchProjects();
+                  if (selectedProjectId) fetchReport(selectedProjectId);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-teal-500/30 hover:text-teal-100"
+              >
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+            </div>
           </div>
         </Reveal>
 
@@ -216,56 +284,61 @@ export default function AdminReportsPage() {
           </Reveal>
         )}
 
-        <Reveal>
-          <GlassCard>
-            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-              <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Search projects
-                </label>
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by title, owner, type, or status..."
-                  className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-                />
+        <div className="print-hide">
+          <Reveal>
+            <GlassCard>
+              <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+                <div>
+                  <label className="text-sm font-medium text-slate-300">
+                    Search projects
+                  </label>
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search by title, owner, type, or status..."
+                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-300">
+                    Select project
+                  </label>
+                  <select
+                    value={selectedProjectId ?? ""}
+                    onChange={(event) =>
+                      setSelectedProjectId(Number(event.target.value))
+                    }
+                    disabled={loadingProjects || filteredProjects.length === 0}
+                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-500"
+                  >
+                    {filteredProjects.map((project) => (
+                      <option
+                        key={project.project_id}
+                        value={project.project_id}
+                      >
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Select project
-                </label>
-                <select
-                  value={selectedProjectId ?? ""}
-                  onChange={(event) =>
-                    setSelectedProjectId(Number(event.target.value))
-                  }
-                  disabled={loadingProjects || filteredProjects.length === 0}
-                  className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-500"
-                >
-                  {filteredProjects.map((project) => (
-                    <option key={project.project_id} value={project.project_id}>
-                      {project.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+              {loadingProjects && (
+                <div className="mt-5 flex items-center gap-2 text-sm text-slate-400">
+                  <Loader2 size={16} className="animate-spin" />
+                  Loading projects...
+                </div>
+              )}
 
-            {loadingProjects && (
-              <div className="mt-5 flex items-center gap-2 text-sm text-slate-400">
-                <Loader2 size={16} className="animate-spin" />
-                Loading projects...
-              </div>
-            )}
-
-            {!loadingProjects && projects.length === 0 && (
-              <p className="mt-5 text-sm text-slate-400">
-                No projects found yet.
-              </p>
-            )}
-          </GlassCard>
-        </Reveal>
+              {!loadingProjects && projects.length === 0 && (
+                <p className="mt-5 text-sm text-slate-400">
+                  No projects found yet.
+                </p>
+              )}
+            </GlassCard>
+          </Reveal>
+        </div>
 
         {loadingReport && (
           <Reveal>
@@ -340,14 +413,18 @@ export default function AdminReportsPage() {
                 <StatCard
                   title="Total tasks"
                   value={formatNumber(report.progress.total_tasks)}
-                  detail={`${formatNumber(report.progress.completed_tasks)} completed`}
+                  detail={`${formatNumber(
+                    report.progress.completed_tasks,
+                  )} completed`}
                   icon={ListChecks}
                   accent="cyan"
                 />
                 <StatCard
                   title="Pending"
                   value={formatNumber(report.progress.pending_tasks)}
-                  detail={`${formatNumber(report.progress.overdue_tasks)} overdue`}
+                  detail={`${formatNumber(
+                    report.progress.overdue_tasks,
+                  )} overdue`}
                   icon={Clock3}
                   accent={report.progress.overdue_tasks > 0 ? "rose" : "amber"}
                 />
