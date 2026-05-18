@@ -1,74 +1,76 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
-import { clearAdminToken, getAdminToken } from "@/lib/auth";
-import { AdminSidebar } from "@/components/layout/AdminSidebar";
-import { AdminTopbar } from "@/components/layout/AdminTopbar";
-import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
+import AdminSidebar from "./AdminSidebar";
+import AdminTopbar from "./AdminTopbar";
 
-type CurrentUser = {
-  user_id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  role: "user" | "admin";
-  is_active: boolean;
-  is_email_verified: boolean;
-};
-
-export function ProtectedAdminLayout({ children }: { children: ReactNode }) {
+export default function ProtectedAdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
-    async function verifyAdmin() {
-      const token = getAdminToken();
+    const token =
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("admin_token");
 
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      try {
-        const response = await api.get<CurrentUser>("/auth/me");
-
-        if (response.data.role !== "admin") {
-          clearAdminToken();
-          router.push("/login");
-          return;
-        }
-
-        setChecking(false);
-      } catch {
-        clearAdminToken();
-        router.push("/login");
-      }
+    if (!token) {
+      router.replace("/login");
+      return;
     }
 
-    verifyAdmin();
+    setCheckingAuth(false);
   }, [router]);
 
-  if (checking) {
-    return <PlanoraLoader />;
+  function toggleSidebar() {
+    const isDesktop =
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches;
+
+    if (isDesktop) {
+      setDesktopSidebarOpen((current) => !current);
+      return;
+    }
+
+    setMobileSidebarOpen((current) => !current);
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#080d1a] text-white">
+        Checking admin access...
+      </div>
+    );
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[#0b1120] text-white">
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
+    <div className="min-h-screen bg-[#080d1a] text-white">
+      <div className="flex min-h-screen">
+        <AdminSidebar
+          desktopOpen={desktopSidebarOpen}
+          mobileOpen={mobileSidebarOpen}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
+        />
 
-        <section className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-          <AdminTopbar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AdminTopbar
+            sidebarOpen={desktopSidebarOpen}
+            onToggleSidebar={toggleSidebar}
+          />
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="dashboard-scale px-4 py-5 sm:px-5 lg:px-6 xl:px-8">
-              {children}
-            </div>
-          </div>
-        </section>
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

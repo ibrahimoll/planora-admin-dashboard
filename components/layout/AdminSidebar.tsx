@@ -1,115 +1,188 @@
 "use client";
 
-import PlanoraLogo from "@/components/PlanoraLogo";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BarChart3,
+  CheckSquare,
   FolderKanban,
-  LayoutDashboard,
-  ListChecks,
+  Grid2X2,
   Settings,
   Users,
+  X,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import PlanoraLogo from "../ui/PlanoraLogo";
+
+type AdminSidebarProps = {
+  desktopOpen: boolean;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+};
 
 const navItems = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard, ready: true },
-  { label: "Users", href: "/dashboard/users", icon: Users, ready: true },
+  {
+    label: "Overview",
+    href: "/dashboard",
+    icon: Grid2X2,
+  },
+  {
+    label: "Users",
+    href: "/dashboard/users",
+    icon: Users,
+  },
   {
     label: "Projects",
     href: "/dashboard/projects",
     icon: FolderKanban,
-    ready: true,
   },
-  { label: "Tasks", href: "/dashboard/tasks", icon: ListChecks, ready: true },
+  {
+    label: "Tasks",
+    href: "/dashboard/tasks",
+    icon: CheckSquare,
+  },
   {
     label: "Risk",
     href: "/dashboard/risk",
     icon: AlertTriangle,
-    ready: true,
   },
   {
     label: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
-    ready: true,
   },
   {
     label: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
-    ready: true,
   },
 ];
 
-export function AdminSidebar() {
+export default function AdminSidebar({
+  desktopOpen,
+  mobileOpen,
+  onCloseMobile,
+}: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:block">
-      <div className="flex h-full flex-col">
-        <div className="px-2">
-          <PlanoraLogo href="/dashboard" />
-        </div>
+    <>
+      <aside
+        className={[
+          desktopOpen ? "hidden lg:flex" : "hidden",
+          "h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
+        ].join(" ")}
+      >
+        <SidebarContent pathname={pathname} />
+      </aside>
 
-        <nav className="mt-8 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close sidebar overlay"
+            onClick={onCloseMobile}
+            className="absolute inset-0 bg-black/60"
+          />
 
-            const active =
-              item.href === "/dashboard"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
+          <aside className="relative flex h-full w-[84%] max-w-[300px] flex-col border-r border-[#1d2942] bg-[#0d1424] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#1d2942] px-5 py-5">
+              <LogoBlock />
 
-            if (!item.ready) {
-              return (
-                <div
-                  key={item.href}
-                  className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500"
-                  aria-disabled="true"
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon size={18} />
-                    {item.label}
-                  </span>
-
-                  <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px]">
-                    Soon
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                  active
-                    ? "bg-teal-500/12 text-teal-100 ring-1 ring-teal-500/20"
-                    : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
-                }`}
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                aria-label="Close sidebar"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1d2942] text-[#8ea3c7] transition hover:border-[#20d6c7]/60 hover:text-[#20d6c7]"
               >
-                <Icon
-                  size={18}
-                  className={active ? "text-teal-300" : "text-slate-500"}
-                />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+                <X size={20} />
+              </button>
+            </div>
 
-        <div className="mt-auto rounded-2xl border border-slate-800 bg-slate-950/45 p-4">
-          <p className="text-sm font-medium text-white">System status</p>
+            <SidebarContent
+              pathname={pathname}
+              onNavigate={onCloseMobile}
+              mobile
+            />
+          </aside>
+        </div>
+      ) : null}
+    </>
+  );
+}
 
-          <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+function SidebarContent({
+  pathname,
+  onNavigate,
+  mobile = false,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+  mobile?: boolean;
+}) {
+  return (
+    <>
+      {!mobile ? (
+        <div className="border-b border-[#1d2942] px-6 py-5">
+          <LogoBlock />
+        </div>
+      ) : null}
+
+      <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-7">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              className={[
+                "flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-bold transition",
+                active
+                  ? "bg-[#08313c] text-white shadow-[0_0_0_1px_rgba(32,214,199,0.16)]"
+                  : "text-[#a9bad7] hover:bg-[#111d31] hover:text-white",
+              ].join(" ")}
+            >
+              <Icon
+                size={20}
+                className={active ? "text-[#20d6c7]" : "text-[#7182a5]"}
+              />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-5">
+        <div className="rounded-2xl border border-[#1d2942] bg-[#080d1a] p-5">
+          <p className="text-sm font-black text-white">System status</p>
+          <p className="mt-3 text-sm text-[#a9bad7]">
             Protected routes active
-          </div>
+          </p>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+function LogoBlock() {
+  return (
+    <Link href="/dashboard" className="flex items-center gap-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#082d36]">
+        <div className="flex h-7 w-7 items-center justify-center">
+          <PlanoraLogo />
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xl font-black leading-none text-white">Planora</p>
+        <p className="mt-2 text-sm font-semibold text-[#93b8e8]">
+          Admin dashboard
+        </p>
+      </div>
+    </Link>
   );
 }
