@@ -55,14 +55,17 @@ export function ProtectedAdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#0b1120] text-white">
-      <div className="flex min-h-screen">
+    <main className="h-screen overflow-hidden bg-[#0b1120] text-white">
+      <div className="flex h-screen overflow-hidden">
         <AdminSidebar />
 
-        <section className="dashboard-scale flex min-h-screen min-w-0 flex-1 flex-col">
+        <section className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
           <AdminTopbar />
-          <div className="flex-1 px-4 py-5 sm:px-5 lg:px-6 xl:px-8">
-            {children}
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="dashboard-scale px-4 py-5 sm:px-5 lg:px-6 xl:px-8">
+              {children}
+            </div>
           </div>
         </section>
       </div>

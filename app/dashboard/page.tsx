@@ -1,8 +1,19 @@
 "use client";
 
+import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
-import { Reveal } from "@/components/ui/Reveal";
-import { useEffect, useState } from "react";
+import { StatCard } from "@/components/ui/StatCard";
+import { api } from "@/lib/api";
+import type {
+  AdminActivityLog,
+  AdminDashboardOverview,
+  AdminNotificationStats,
+  AdminProjectStats,
+  AdminRiskStats,
+  AdminTaskStats,
+  AdminUserStats,
+} from "@/types/admin";
+import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -15,19 +26,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { api } from "@/lib/api";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { StatCard } from "@/components/ui/StatCard";
-import type {
-  AdminActivityLog,
-  AdminDashboardOverview,
-  AdminNotificationStats,
-  AdminProjectStats,
-  AdminRiskStats,
-  AdminTaskStats,
-  AdminUserStats,
-} from "@/types/admin";
+import { useEffect, useState } from "react";
 
 const emptyUsers: AdminUserStats = {
   total_users: 0,
@@ -271,9 +270,9 @@ export default function DashboardPage() {
 
   const { users, projects, tasks, risks, notifications } = overview;
   const riskTone: Tone =
-    risks.high_risk_records > 0 || tasks.overdue_tasks > 0
+    risks.high_risk_records > 0 || tasks.blocked_tasks > 0
       ? "rose"
-      : risks.medium_risk_records > 0 || tasks.blocked_tasks > 0
+      : risks.medium_risk_records > 0 || tasks.overdue_tasks > 0
         ? "amber"
         : "emerald";
   const openProjectCount =
@@ -304,7 +303,9 @@ export default function DashboardPage() {
                   Last updated
                 </p>
                 <p className="mt-1 font-semibold text-white">
-                  {loading ? "Loading..." : formatDateTime(overview.generated_at)}
+                  {loading
+                    ? "Loading..."
+                    : formatDateTime(overview.generated_at)}
                 </p>
               </div>
             </div>
@@ -317,21 +318,26 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Risk status
               </p>
-              <h2 className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}>
+              <h2
+                className={`mt-2 text-3xl font-bold ${toneMap[riskTone].text}`}
+              >
                 {loading
                   ? "--"
                   : risks.high_risk_records > 0
                     ? "Needs review"
-                    : tasks.overdue_tasks > 0
-                      ? "Overdue tasks"
+                    : tasks.overdue_tasks > 0 || tasks.blocked_tasks > 0
+                      ? "Work needs attention"
                       : "Stable"}
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-400">
-                {formatCount(risks.high_risk_records)} high-risk records and{" "}
+                {formatCount(risks.high_risk_records)} high-risk records,{" "}
+                {formatCount(tasks.blocked_tasks)} blocked tasks, and{" "}
                 {formatCount(tasks.overdue_tasks)} overdue tasks.
               </p>
             </div>
-            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}>
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${toneMap[riskTone].border} ${toneMap[riskTone].bg} ${toneMap[riskTone].text}`}
+            >
               <AlertTriangle size={22} />
             </div>
           </div>
@@ -404,9 +410,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
               Project progress
             </p>
-            <h2 className="text-2xl font-bold text-white">
-              Project progress
-            </h2>
+            <h2 className="text-2xl font-bold text-white">Project progress</h2>
             <p className="text-sm leading-6 text-slate-400">
               The bars below use the current overview endpoint. Empty values
               mean the backend has no records for that status yet.

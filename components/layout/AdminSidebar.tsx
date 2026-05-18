@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BarChart3,
@@ -11,6 +9,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, ready: true },
@@ -19,23 +19,28 @@ const navItems = [
     label: "Projects",
     href: "/dashboard/projects",
     icon: FolderKanban,
-    ready: false,
+    ready: true,
   },
-  { label: "Tasks", href: "/dashboard/tasks", icon: ListChecks, ready: false },
+  { label: "Tasks", href: "/dashboard/tasks", icon: ListChecks, ready: true },
   {
     label: "Risk",
     href: "/dashboard/risk",
     icon: AlertTriangle,
-    ready: false,
+    ready: true,
   },
-  { label: "Reports", href: "/dashboard/reports", icon: BarChart3, ready: false },
+  {
+    label: "Reports",
+    href: "/dashboard/reports",
+    icon: BarChart3,
+    ready: true,
+  },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:sticky lg:top-0 lg:block">
+    <aside className="hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-800 bg-[#0f172a] px-4 py-5 lg:block">
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-slate-950">

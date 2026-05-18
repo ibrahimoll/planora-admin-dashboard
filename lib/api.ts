@@ -2,7 +2,7 @@ import axios from "axios";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.0.110:8000";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -29,10 +29,12 @@ api.interceptors.response.use(
     if (typeof window !== "undefined" && axios.isAxiosError(error)) {
       const status = error.response?.status;
       const requestUrl = error.config?.url ?? "";
+
       const isPublicAuthRequest =
         requestUrl.includes("/auth/login") ||
         requestUrl.includes("/auth/forgot-password") ||
         requestUrl.includes("/auth/reset-password");
+
       const isLoginPage = window.location.pathname === "/login";
 
       if (

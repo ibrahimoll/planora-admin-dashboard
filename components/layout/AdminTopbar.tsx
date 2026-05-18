@@ -1,12 +1,50 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, LogOut, Search, ShieldCheck, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { clearAdminToken } from "@/lib/auth";
+import { Bell, LogOut, Search, ShieldCheck } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+
+const pageTitles: Record<string, string> = {
+  "/dashboard": "Overview",
+  "/dashboard/users": "Users",
+  "/dashboard/projects": "Projects",
+  "/dashboard/tasks": "Tasks",
+  "/dashboard/risk": "Risk",
+  "/dashboard/reports": "Reports",
+};
+
+function getPageTitle(pathname: string) {
+  if (pageTitles[pathname]) {
+    return pageTitles[pathname];
+  }
+
+  if (pathname.startsWith("/dashboard/users")) {
+    return "Users";
+  }
+
+  if (pathname.startsWith("/dashboard/projects")) {
+    return "Projects";
+  }
+
+  if (pathname.startsWith("/dashboard/tasks")) {
+    return "Tasks";
+  }
+
+  if (pathname.startsWith("/dashboard/risk")) {
+    return "Risk";
+  }
+
+  if (pathname.startsWith("/dashboard/reports")) {
+    return "Reports";
+  }
+
+  return "Overview";
+}
 
 export function AdminTopbar() {
   const router = useRouter();
+  const pathname = usePathname();
+  const pageTitle = getPageTitle(pathname);
 
   function handleLogout() {
     clearAdminToken();
@@ -14,12 +52,12 @@ export function AdminTopbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#0b1120]/95 px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
+    <header className="sticky top-0 z-50 border-b border-slate-800 bg-[#0b1120]/95 px-4 py-4 backdrop-blur-sm sm:px-6 lg:px-8 xl:px-10">
       <div className="flex min-w-0 items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-slate-400">Admin</p>
           <h1 className="truncate text-lg font-semibold text-white">
-            Project overview
+            {pageTitle}
           </h1>
         </div>
 
@@ -34,7 +72,6 @@ export function AdminTopbar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-
           <button
             type="button"
             aria-label="Notifications"
