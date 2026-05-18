@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2, LockKeyhole, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { AdminAuthShell } from "@/components/auth/AdminAuthShell";
 import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
 import { api } from "@/lib/api";
 import { getLoginErrorMessage } from "@/lib/auth-errors";
 import { clearAdminToken, getAdminToken, saveAdminToken } from "@/lib/auth";
+import { saveAdminProfile, type AdminUser } from "@/lib/adminProfileSync";
 
 type LoginResponse = {
   access_token: string;
   token_type: string;
 };
 
-type CurrentUser = {
+type CurrentUser = AdminUser & {
   role: "user" | "admin";
   is_active?: boolean;
   is_email_verified?: boolean;
@@ -54,6 +56,7 @@ export default function LoginPage() {
         const response = await api.get<CurrentUser>("/auth/me");
 
         if (isActiveAdmin(response.data)) {
+          saveAdminProfile(response.data);
           router.replace("/dashboard");
           return;
         }
@@ -73,14 +76,13 @@ export default function LoginPage() {
     };
   }, [router]);
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
     const identifier = emailOrUsername.trim();
-    const passwordValue = password.trim();
 
-    if (!identifier && !passwordValue) {
+    if (!identifier && !password) {
       setError("Enter your email/username and password.");
       return;
     }
@@ -90,7 +92,7 @@ export default function LoginPage() {
       return;
     }
 
-    if (!passwordValue) {
+    if (!password) {
       setError("Enter your password.");
       return;
     }
@@ -124,10 +126,11 @@ export default function LoginPage() {
 
       if (!isActiveAdmin(meResponse.data)) {
         clearAdminToken();
-        setError("This admin account is not active.");
+        setError("This admin account is not active or verified.");
         return;
       }
 
+      saveAdminProfile(meResponse.data);
       router.replace("/dashboard");
     } catch (loginError) {
       clearAdminToken();
@@ -149,82 +152,117 @@ export default function LoginPage() {
   return (
     <AdminAuthShell
       eyebrow="Admin access"
-      title="Planora Admin"
-      subtitle="Sign in to manage users, projects, tasks, and risk."
+      title="Welcome back"
+      subtitle="Sign in with your Planora admin account to manage the dashboard."
     >
       <form onSubmit={handleLogin} className="space-y-5" noValidate>
         <div>
           <label
             htmlFor="admin-login-identifier"
-            className="text-sm text-slate-300"
+            className="text-sm font-medium text-[#d8e2f5]"
           >
             Email or username
           </label>
-          <input
-            id="admin-login-identifier"
-            value={emailOrUsername}
-            onChange={(event) => setEmailOrUsername(event.target.value)}
-            autoComplete="username"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "admin-login-error" : undefined}
-            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-            placeholder="admin@planora.ai"
-          />
+
+          <div className="relative mt-2">
+            <Mail
+              size={19}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#7182a5]"
+            />
+
+            <input
+              id="admin-login-identifier"
+              value={emailOrUsername}
+              onChange={(event) => setEmailOrUsername(event.target.value)}
+              autoComplete="username"
+              autoFocus
+              disabled={loading}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "admin-login-error" : undefined}
+              className="h-14 w-full rounded-2xl border border-[#1d2942] bg-[#080d1a] pl-12 pr-4 text-sm font-medium text-white outline-none transition-all duration-200 placeholder:text-[#7182a5] focus:border-[#20d6c7]/80 focus:bg-[#0a1120] focus:shadow-[0_0_0_4px_rgba(32,214,199,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="admin@planora.ai"
+            />
+          </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between gap-4">
             <label
               htmlFor="admin-login-password"
-              className="text-sm text-slate-300"
+              className="text-sm font-medium text-[#d8e2f5]"
             >
               Password
             </label>
+
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-teal-200 transition hover:text-white"
+              className="text-sm font-medium text-[#20d6c7] transition hover:text-white"
             >
               Forgot password?
             </Link>
           </div>
+
           <div className="relative mt-2">
+            <LockKeyhole
+              size={19}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#7182a5]"
+            />
+
             <input
               id="admin-login-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
+              disabled={loading}
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "admin-login-error" : undefined}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 pr-14 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-              placeholder="********"
+              className="h-14 w-full rounded-2xl border border-[#1d2942] bg-[#080d1a] pl-12 pr-14 text-sm font-medium text-white outline-none transition-all duration-200 placeholder:text-[#7182a5] focus:border-[#20d6c7]/80 focus:bg-[#0a1120] focus:shadow-[0_0_0_4px_rgba(32,214,199,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Enter your password"
             />
+
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
+              disabled={loading}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-[#1d2942] bg-[#0d1424] text-[#8ea3c7] transition hover:border-[#20d6c7]/50 hover:text-[#20d6c7] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
 
-        {error && (
+        {error ? (
           <p
             id="admin-login-error"
             role="alert"
-            className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            className="flex items-start gap-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm leading-6 text-red-100"
           >
-            {error}
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
           </p>
-        )}
+        ) : null}
 
         <button
+          type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="group flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#20d6c7] px-4 text-sm font-semibold text-[#06111f] shadow-[0_18px_40px_rgba(32,214,199,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5eead4] hover:shadow-[0_22px_55px_rgba(32,214,199,0.22)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Authenticating admin..." : "Login"}
+          {loading ? (
+            <>
+              <Loader2 size={19} className="animate-spin" />
+              Authenticating admin...
+            </>
+          ) : (
+            <>
+              Login to dashboard
+              <LockKeyhole
+                size={18}
+                className="transition-transform duration-200 group-hover:scale-110"
+              />
+            </>
+          )}
         </button>
       </form>
     </AdminAuthShell>

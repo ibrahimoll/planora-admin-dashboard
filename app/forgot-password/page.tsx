@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useState } from "react";
-import { ArrowLeft, MailCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Loader2,
+  Mail,
+  MailCheck,
+  Send,
+} from "lucide-react";
 import { AdminAuthShell } from "@/components/auth/AdminAuthShell";
 import { api } from "@/lib/api";
 import { getAuthRequestErrorMessage } from "@/lib/auth-errors";
@@ -13,13 +21,14 @@ type MessageResponse = {
 };
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccess("");
@@ -38,9 +47,7 @@ export default function ForgotPasswordPage() {
         email: emailValue,
       });
 
-      setSuccess(
-        "If an account with that email exists, a reset code has been sent.",
-      );
+      setSuccess("Reset code sent. Check your email inbox.");
 
       router.push(`/reset-password?email=${encodeURIComponent(emailValue)}`);
     } catch (requestError) {
@@ -58,71 +65,106 @@ export default function ForgotPasswordPage() {
   return (
     <AdminAuthShell
       eyebrow="Password reset"
-      title="Reset your admin password"
-      subtitle="Enter your admin email and we will send a reset code."
+      title="Recover admin access"
+      subtitle="Enter your Planora admin email and we will send a 6-digit reset code."
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div>
-          <label htmlFor="forgot-password-email" className="text-sm text-slate-300">
+          <label
+            htmlFor="forgot-password-email"
+            className="text-sm font-medium text-[#d8e2f5]"
+          >
             Admin email
           </label>
-          <input
-            id="forgot-password-email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type="text"
-            inputMode="email"
-            autoComplete="email"
-            aria-invalid={Boolean(error)}
-            aria-describedby={
-              error
-                ? "forgot-password-error"
-                : success
-                  ? "forgot-password-success"
-                  : undefined
-            }
-            className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-            placeholder="admin@planora.ai"
-          />
+
+          <div className="relative mt-2">
+            <Mail
+              size={19}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#7182a5]"
+            />
+
+            <input
+              id="forgot-password-email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="text"
+              inputMode="email"
+              autoComplete="email"
+              autoFocus
+              disabled={loading}
+              aria-invalid={Boolean(error)}
+              aria-describedby={
+                error
+                  ? "forgot-password-error"
+                  : success
+                    ? "forgot-password-success"
+                    : undefined
+              }
+              className="h-14 w-full rounded-2xl border border-[#1d2942] bg-[#080d1a] pl-12 pr-4 text-sm font-medium text-white outline-none transition-all duration-200 placeholder:text-[#7182a5] focus:border-[#20d6c7]/80 focus:bg-[#0a1120] focus:shadow-[0_0_0_4px_rgba(32,214,199,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="admin@planora.ai"
+            />
+          </div>
         </div>
 
-        {error && (
+        {error ? (
           <p
             id="forgot-password-error"
             role="alert"
-            className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            className="flex items-start gap-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm leading-6 text-red-100"
           >
-            {error}
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
           </p>
-        )}
+        ) : null}
 
-        {success && (
+        {success ? (
           <div
             id="forgot-password-success"
             role="status"
-            className="rounded-2xl border border-emerald-300/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+            className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
           >
-            <div className="flex gap-3">
-              <MailCheck size={18} className="mt-0.5 text-emerald-200" />
+            <div className="flex items-start gap-3">
+              <MailCheck size={18} className="mt-0.5 shrink-0 text-emerald-200" />
               <p>{success}</p>
             </div>
           </div>
-        )}
+        ) : null}
 
         <button
+          type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="group flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#20d6c7] px-4 text-sm font-semibold text-[#06111f] shadow-[0_18px_40px_rgba(32,214,199,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5eead4] hover:shadow-[0_22px_55px_rgba(32,214,199,0.22)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Sending reset code..." : "Send reset code"}
+          {loading ? (
+            <>
+              <Loader2 size={19} className="animate-spin" />
+              Sending reset code...
+            </>
+          ) : (
+            <>
+              Send reset code
+              <Send
+                size={18}
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </>
+          )}
         </button>
 
-        <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-4 text-sm">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-slate-300 transition hover:text-white"
+            className="inline-flex items-center gap-2 font-medium text-[#a9bad7] transition hover:text-white"
           >
             <ArrowLeft size={16} />
             Back to login
+          </Link>
+
+          <Link
+            href="/reset-password"
+            className="font-medium text-[#20d6c7] transition hover:text-white"
+          >
+            I already have a code
           </Link>
         </div>
       </form>
