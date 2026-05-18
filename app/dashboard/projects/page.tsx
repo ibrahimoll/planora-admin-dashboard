@@ -207,35 +207,6 @@ function ProjectProgress({ value }: { value: number }) {
   );
 }
 
-function MetricTile({
-  label,
-  value,
-  detail,
-  tone = "teal",
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  tone?: "teal" | "emerald" | "amber" | "rose";
-}) {
-  const toneClass = {
-    teal: "text-teal-200",
-    emerald: "text-emerald-200",
-    amber: "text-amber-200",
-    rose: "text-rose-200",
-  }[tone];
-
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-        {label}
-      </p>
-      <p className={`mt-2 text-3xl font-semibold ${toneClass}`}>{value}</p>
-      <p className="mt-1 text-sm text-slate-400">{detail}</p>
-    </div>
-  );
-}
-
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<AdminProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -252,24 +223,6 @@ export default function AdminProjectsPage() {
   const [savingStatus, setSavingStatus] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-
-  const stats = useMemo(() => {
-    const total = projects.length;
-    const inProgress = projects.filter(
-      (project) => project.status === "in_progress",
-    ).length;
-    const completed = projects.filter(
-      (project) => project.status === "completed",
-    ).length;
-    const overdue = projects.filter((project) =>
-      isOverdue(project.deadline, project.status),
-    ).length;
-    const highRisk = projects.filter(
-      (project) => project.latest_risk?.risk_level === "high",
-    ).length;
-
-    return { total, inProgress, completed, overdue, highRisk };
-  }, [projects]);
 
   const groupedProjects = useMemo(() => {
     return statusOrder
@@ -303,6 +256,7 @@ export default function AdminProjectsPage() {
   async function refreshProjects() {
     setError("");
     setNotice("");
+    setLoadingProjects(true);
 
     try {
       const data = await fetchProjects();
@@ -324,6 +278,8 @@ export default function AdminProjectsPage() {
           "Unable to refresh projects right now.",
         ),
       );
+    } finally {
+      setLoadingProjects(false);
     }
   }
 
@@ -465,70 +421,6 @@ export default function AdminProjectsPage() {
 
   return (
     <PageTransition className="space-y-6 pb-10">
-      <Reveal>
-        <GlassCard className="p-0">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-              <div>
-                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                  <FolderKanban size={15} />
-                  Portfolio
-                </p>
-
-                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                  Project delivery overview
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-                  Monitor project progress, deadlines, blocked work, and risk
-                  across Planora.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={refreshProjects}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
-              >
-                <RefreshCw size={17} />
-                Refresh projects
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <MetricTile
-                label="Projects"
-                value={loadingProjects ? "--" : stats.total}
-                detail="Current filters"
-              />
-              <MetricTile
-                label="In progress"
-                value={loadingProjects ? "--" : stats.inProgress}
-                detail="Active delivery"
-              />
-              <MetricTile
-                label="Completed"
-                value={loadingProjects ? "--" : stats.completed}
-                detail="Finished work"
-                tone="emerald"
-              />
-              <MetricTile
-                label="Overdue"
-                value={loadingProjects ? "--" : stats.overdue}
-                detail="Past deadline"
-                tone={stats.overdue > 0 ? "rose" : "emerald"}
-              />
-              <MetricTile
-                label="High risk"
-                value={loadingProjects ? "--" : stats.highRisk}
-                detail="Needs review"
-                tone={stats.highRisk > 0 ? "rose" : "emerald"}
-              />
-            </div>
-          </div>
-        </GlassCard>
-      </Reveal>
-
       {(error || notice) && (
         <GlassCard
           className={
@@ -567,14 +459,29 @@ export default function AdminProjectsPage() {
                   </p>
                 </div>
 
-                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 xl:w-96">
-                  <Search size={18} className="shrink-0 text-slate-500" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                    placeholder="Search title or description..."
-                  />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 xl:w-96">
+                    <Search size={18} className="shrink-0 text-slate-500" />
+                    <input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                      placeholder="Search title or description..."
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={refreshProjects}
+                    disabled={loadingProjects}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <RefreshCw
+                      size={17}
+                      className={loadingProjects ? "animate-spin" : ""}
+                    />
+                    Refresh
+                  </button>
                 </div>
               </div>
 

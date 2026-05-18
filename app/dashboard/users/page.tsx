@@ -100,6 +100,7 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 
 function getInitials(user: Pick<AdminUser, "full_name" | "username">) {
   const source = user.full_name?.trim() || user.username;
+
   return source
     .split(" ")
     .filter(Boolean)
@@ -226,18 +227,22 @@ export default function AdminUsersPage() {
         });
 
         setUsers(response.data);
+
         if (response.data.length === 0) {
           setSelectedUser(null);
           setActivity([]);
         }
+
         setSelectedUserId((current) => {
           if (response.data.length === 0) return null;
+
           if (
             current &&
             response.data.some((user) => user.user_id === current)
           ) {
             return current;
           }
+
           return response.data[0].user_id;
         });
       } catch (requestError) {
@@ -315,20 +320,50 @@ export default function AdminUsersPage() {
   }, [selectedUserId]);
 
   async function refreshUsers() {
-    const response = await api.get<AdminUser[]>("/admin/users", {
-      params: {
-        limit: 100,
-        role: roleFilter === "all" ? undefined : roleFilter,
-        is_active:
-          statusFilter === "all" ? undefined : statusFilter === "active",
-        is_email_verified:
-          verificationFilter === "all"
-            ? undefined
-            : verificationFilter === "verified",
-        search: search.trim() || undefined,
-      },
-    });
-    setUsers(response.data);
+    setLoadingUsers(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await api.get<AdminUser[]>("/admin/users", {
+        params: {
+          limit: 100,
+          role: roleFilter === "all" ? undefined : roleFilter,
+          is_active:
+            statusFilter === "all" ? undefined : statusFilter === "active",
+          is_email_verified:
+            verificationFilter === "all"
+              ? undefined
+              : verificationFilter === "verified",
+          search: search.trim() || undefined,
+        },
+      });
+
+      setUsers(response.data);
+
+      if (response.data.length === 0) {
+        setSelectedUserId(null);
+        setSelectedUser(null);
+        setActivity([]);
+      } else {
+        setSelectedUserId((current) => {
+          if (
+            current &&
+            response.data.some((user) => user.user_id === current)
+          ) {
+            return current;
+          }
+
+          return response.data[0].user_id;
+        });
+      }
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(requestError, "Unable to refresh users right now."),
+      );
+    } finally {
+      setLoadingUsers(false);
+    }
   }
 
   async function handleAction(
@@ -374,55 +409,6 @@ export default function AdminUsersPage() {
 
   return (
     <PageTransition className="space-y-6 pb-10">
-      <Reveal>
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <GlassCard className="p-0">
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                    <Users size={15} />
-                    Users
-                  </p>
-                  <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                    Admin users
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                    Manage account access, roles, email verification, and recent
-                    activity for Planora users.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={refreshUsers}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
-                >
-                  <RefreshCw size={17} />
-                  Refresh users
-                </button>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard>
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Admin actions
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-300">
-                  Actions are sent through the existing protected admin API.
-                </p>
-              </div>
-            </div>
-          </GlassCard>
-        </section>
-      </Reveal>
-
       <Reveal delay={0.04}>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
@@ -433,6 +419,7 @@ export default function AdminUsersPage() {
             accent="cyan"
             signal="Search results"
           />
+
           <StatCard
             title="Active"
             value={loadingUsers ? "--" : stats.active}
@@ -441,6 +428,7 @@ export default function AdminUsersPage() {
             accent="emerald"
             signal="Account status"
           />
+
           <StatCard
             title="Admins"
             value={loadingUsers ? "--" : stats.admins}
@@ -449,6 +437,7 @@ export default function AdminUsersPage() {
             accent="purple"
             signal="Role count"
           />
+
           <StatCard
             title="Verified"
             value={loadingUsers ? "--" : stats.verified}
@@ -494,14 +483,29 @@ export default function AdminUsersPage() {
                   </h2>
                 </div>
 
-                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
-                  <Search size={18} className="shrink-0 text-slate-500" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                    placeholder="Search name, username, email..."
-                  />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
+                    <Search size={18} className="shrink-0 text-slate-500" />
+                    <input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                      placeholder="Search name, username, email..."
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={refreshUsers}
+                    disabled={loadingUsers}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <RefreshCw
+                      size={17}
+                      className={loadingUsers ? "animate-spin" : ""}
+                    />
+                    Refresh
+                  </button>
                 </div>
               </div>
 
@@ -517,6 +521,7 @@ export default function AdminUsersPage() {
                     />
                   ))}
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {statusOptions.map((option) => (
                     <FilterButton
@@ -528,6 +533,7 @@ export default function AdminUsersPage() {
                     />
                   ))}
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {verificationOptions.map((option) => (
                     <FilterButton
@@ -629,6 +635,7 @@ export default function AdminUsersPage() {
                               )}
                               {user.role}
                             </span>
+
                             <span
                               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                                 user.is_email_verified
@@ -665,6 +672,7 @@ export default function AdminUsersPage() {
                             >
                               <Eye size={16} />
                             </button>
+
                             <button
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
@@ -687,6 +695,7 @@ export default function AdminUsersPage() {
                                 <Power size={16} />
                               )}
                             </button>
+
                             <button
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
@@ -747,16 +756,20 @@ export default function AdminUsersPage() {
                   <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-teal-500/20 bg-teal-500/10 text-2xl font-semibold text-teal-100">
                     {getInitials(selectedUser)}
                   </div>
+
                   <h3 className="mt-4 text-2xl font-semibold text-white">
                     {selectedUser.full_name || selectedUser.username}
                   </h3>
+
                   <p className="mt-1 text-sm text-slate-400">
                     @{selectedUser.username}
                   </p>
+
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <StatusPill active={selectedUser.is_active}>
                       {selectedUser.is_active ? "Active" : "Inactive"}
                     </StatusPill>
+
                     <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold capitalize text-violet-200">
                       {selectedUser.role}
                     </span>
@@ -800,6 +813,7 @@ export default function AdminUsersPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
                     Recent activity
                   </p>
+
                   {activity.length === 0 ? (
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
                       No recent activity found for this user.
@@ -848,6 +862,7 @@ export default function AdminUsersPage() {
                       ? "Deactivate user"
                       : "Activate user"}
                   </button>
+
                   <button
                     type="button"
                     disabled={

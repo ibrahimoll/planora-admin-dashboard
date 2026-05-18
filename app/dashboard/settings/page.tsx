@@ -9,15 +9,20 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  ImagePlus,
   KeyRound,
   Loader2,
   RefreshCw,
   Save,
   ShieldCheck,
-  UserCog,
+  Trash2,
+  Upload,
 } from "lucide-react";
-import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.0.110:8000";
 
 type AdminProfile = {
   user_id: number;
@@ -74,12 +79,27 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getProfileImageSrc(profilePic: string | null | undefined) {
+  if (!profilePic) return "";
+
+  if (
+    profilePic.startsWith("http://") ||
+    profilePic.startsWith("https://") ||
+    profilePic.startsWith("data:")
+  ) {
+    return profilePic;
+  }
+
+  return `${API_BASE_URL}${profilePic}`;
+}
+
 export default function AdminSettingsPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [profile, setProfile] = useState<AdminProfile | null>(null);
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
-  const [profilePic, setProfilePic] = useState("");
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -87,6 +107,8 @@ export default function AdminSettingsPage() {
 
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [removingPicture, setRemovingPicture] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [profileError, setProfileError] = useState("");
@@ -102,15 +124,16 @@ export default function AdminSettingsPage() {
     return getInitials(fullName, username);
   }, [fullName, username]);
 
+  const profileImageSrc = getProfileImageSrc(profile?.profile_pic);
+
   const hasProfileChanges = useMemo(() => {
     if (!profile) return false;
 
     return (
       username.trim() !== profile.username ||
-      fullName.trim() !== profile.full_name ||
-      profilePic.trim() !== (profile.profile_pic ?? "")
+      fullName.trim() !== profile.full_name
     );
-  }, [profile, username, fullName, profilePic]);
+  }, [profile, username, fullName]);
 
   async function loadProfile() {
     setLoadingProfile(true);
@@ -124,7 +147,6 @@ export default function AdminSettingsPage() {
       setProfile(data);
       setUsername(data.username);
       setFullName(data.full_name);
-      setProfilePic(data.profile_pic ?? "");
     } catch (requestError) {
       setProfileError(
         getApiErrorMessage(requestError, "Unable to load profile settings."),
@@ -142,7 +164,6 @@ export default function AdminSettingsPage() {
 
     const cleanUsername = username.trim();
     const cleanFullName = fullName.trim();
-    const cleanProfilePic = profilePic.trim();
 
     if (cleanUsername.length < 3) {
       setProfileError("Username must be at least 3 characters.");
@@ -160,13 +181,11 @@ export default function AdminSettingsPage() {
       const response = await api.patch<ProfileUpdateResponse>("/profile", {
         username: cleanUsername,
         full_name: cleanFullName,
-        profile_pic: cleanProfilePic,
       });
 
       setProfile(response.data.user);
       setUsername(response.data.user.username);
       setFullName(response.data.user.full_name);
-      setProfilePic(response.data.user.profile_pic ?? "");
       setProfileNotice(response.data.message);
     } catch (requestError) {
       setProfileError(
@@ -174,6 +193,78 @@ export default function AdminSettingsPage() {
       );
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleProfilePictureChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file) return;
+
+    setProfileError("");
+    setProfileNotice("");
+
+    if (!file.type.startsWith("image/")) {
+      setProfileError("Please select an image file.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setProfileError("Profile picture must be 3MB or less.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingPicture(true);
+
+    try {
+      const response = await api.post<ProfileUpdateResponse>(
+        "/profile/picture",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      setProfile(response.data.user);
+      setUsername(response.data.user.username);
+      setFullName(response.data.user.full_name);
+      setProfileNotice(response.data.message);
+    } catch (requestError) {
+      setProfileError(
+        getApiErrorMessage(requestError, "Unable to upload profile picture."),
+      );
+    } finally {
+      setUploadingPicture(false);
+    }
+  }
+
+  async function handleRemoveProfilePicture() {
+    setProfileError("");
+    setProfileNotice("");
+    setRemovingPicture(true);
+
+    try {
+      const response = await api.patch<ProfileUpdateResponse>("/profile", {
+        profile_pic: "",
+      });
+
+      setProfile(response.data.user);
+      setProfileNotice("Profile picture removed successfully.");
+    } catch (requestError) {
+      setProfileError(
+        getApiErrorMessage(requestError, "Unable to remove profile picture."),
+      );
+    } finally {
+      setRemovingPicture(false);
     }
   }
 
@@ -272,9 +363,9 @@ export default function AdminSettingsPage() {
           <GlassCard className="h-full">
             <div className="flex flex-col items-center text-center">
               <div className="relative">
-                {profilePic.trim() ? (
+                {profileImageSrc ? (
                   <img
-                    src={profilePic.trim()}
+                    src={profileImageSrc}
                     alt="Admin profile"
                     className="h-28 w-28 rounded-3xl border border-teal-500/20 object-cover shadow-lg shadow-black/25"
                   />
@@ -284,10 +375,28 @@ export default function AdminSettingsPage() {
                   </div>
                 )}
 
-                <div className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 text-teal-200">
-                  <Camera size={18} />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPicture}
+                  className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 text-teal-200 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Upload profile picture"
+                >
+                  {uploadingPicture ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Camera size={18} />
+                  )}
+                </button>
               </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleProfilePictureChange}
+                className="hidden"
+              />
 
               <h2 className="mt-6 text-2xl font-bold text-white">
                 {fullName || "Admin"}
@@ -295,6 +404,43 @@ export default function AdminSettingsPage() {
               <p className="mt-1 text-sm text-slate-400">@{username}</p>
 
               <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPicture}
+                  className="inline-flex items-center gap-2 rounded-xl border border-teal-500/25 bg-teal-500/10 px-3 py-2 text-sm font-semibold text-teal-100 transition hover:border-teal-400/40 hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {uploadingPicture ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <ImagePlus size={16} />
+                  )}
+                  Choose image
+                </button>
+
+                {profile?.profile_pic && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveProfilePicture}
+                    disabled={removingPicture}
+                    className="inline-flex items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:border-rose-400/40 hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {removingPicture ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                <Upload size={14} />
+                PNG, JPG, JPEG, or WEBP. Max 3MB.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
                 <span className="rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-teal-200">
                   {profile?.role ?? "admin"}
                 </span>
@@ -343,7 +489,7 @@ export default function AdminSettingsPage() {
                     Edit profile information
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Change your display name, username, and profile picture URL.
+                    Change your display name and username.
                   </p>
                 </div>
 
@@ -396,25 +542,6 @@ export default function AdminSettingsPage() {
                       placeholder="admin_username"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="settings-profile-pic"
-                    className="text-sm font-medium text-slate-300"
-                  >
-                    Profile picture URL
-                  </label>
-                  <input
-                    id="settings-profile-pic"
-                    value={profilePic}
-                    onChange={(event) => setProfilePic(event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-                    placeholder="https://example.com/profile.png"
-                  />
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Leave this empty to remove the visible profile picture.
-                  </p>
                 </div>
 
                 <button
