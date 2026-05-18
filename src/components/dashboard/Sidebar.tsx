@@ -3,27 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AlertTriangle,
   BarChart3,
-  Bell,
-  ClipboardList,
+  CheckSquare,
   FolderKanban,
-  LayoutDashboard,
+  Grid2X2,
   Settings,
-  Shield,
   Users,
   X,
 } from "lucide-react";
+import PlanoraLogo from "@/components/PlanoraLogo";
 
 type SidebarProps = {
-  open: boolean;
-  onClose: () => void;
+  desktopOpen: boolean;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 };
 
 const navItems = [
   {
-    label: "Dashboard",
+    label: "Overview",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: Grid2X2,
   },
   {
     label: "Users",
@@ -38,22 +39,17 @@ const navItems = [
   {
     label: "Tasks",
     href: "/dashboard/tasks",
-    icon: ClipboardList,
+    icon: CheckSquare,
   },
   {
-    label: "Analytics",
-    href: "/dashboard/analytics",
+    label: "Risk",
+    href: "/dashboard/risk",
+    icon: AlertTriangle,
+  },
+  {
+    label: "Reports",
+    href: "/dashboard/reports",
     icon: BarChart3,
-  },
-  {
-    label: "Notifications",
-    href: "/dashboard/notifications",
-    icon: Bell,
-  },
-  {
-    label: "Admin Logs",
-    href: "/dashboard/admin-logs",
-    icon: Shield,
   },
   {
     label: "Settings",
@@ -62,42 +58,51 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ open, onClose }: SidebarProps) {
+export default function Sidebar({
+  desktopOpen,
+  mobileOpen,
+  onCloseMobile,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <>
-      <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white lg:sticky lg:top-0 lg:block lg:h-screen">
+      <aside
+        className={[
+          desktopOpen ? "hidden lg:flex" : "hidden",
+          "h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
+        ].join(" ")}
+      >
         <SidebarContent pathname={pathname} />
       </aside>
 
-      {open && (
+      {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             aria-label="Close sidebar overlay"
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-950/50"
+            onClick={onCloseMobile}
+            className="absolute inset-0 bg-black/60"
           />
 
-          <aside className="relative h-full w-[84%] max-w-80 border-r border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <Logo />
+          <aside className="relative flex h-full w-[84%] max-w-[300px] flex-col border-r border-[#1d2942] bg-[#0d1424] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#1d2942] px-5 py-5">
+              <LogoBlock />
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={onCloseMobile}
                 aria-label="Close sidebar"
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1d2942] text-[#8ea3c7] transition hover:border-[#22d3c5]/50 hover:text-[#22d3c5]"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <SidebarContent pathname={pathname} onNavigate={onClose} mobile />
+            <SidebarContent pathname={pathname} onNavigate={onCloseMobile} mobile />
           </aside>
         </div>
-      )}
+      ) : null}
     </>
   );
 }
@@ -112,14 +117,14 @@ function SidebarContent({
   mobile?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col">
-      {!mobile && (
-        <div className="border-b border-slate-200 px-6 py-5">
-          <Logo />
+    <>
+      {!mobile ? (
+        <div className="border-b border-[#1d2942] px-6 py-5">
+          <LogoBlock />
         </div>
-      )}
+      ) : null}
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+      <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-7">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active =
@@ -131,44 +136,45 @@ function SidebarContent({
               href={item.href}
               onClick={onNavigate}
               className={[
-                "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
+                "flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-bold transition",
                 active
-                  ? "bg-slate-950 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                  ? "bg-[#08313c] text-white shadow-[0_0_0_1px_rgba(34,211,197,0.16)]"
+                  : "text-[#a9bad7] hover:bg-[#111d31] hover:text-white",
               ].join(" ")}
             >
-              <Icon size={19} />
-              <span>{item.label}</span>
+              <Icon
+                size={20}
+                className={active ? "text-[#22d3c5]" : "text-[#7182a5]"}
+              />
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-slate-200 p-4">
-        <div className="rounded-2xl bg-slate-50 p-4">
-          <p className="text-sm font-bold text-slate-950">Planora Admin</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Manage users, projects, tasks, risks, and system activity.
+      <div className="p-5">
+        <div className="rounded-2xl border border-[#1d2942] bg-[#080d1a] p-5">
+          <p className="text-sm font-black text-white">System status</p>
+          <p className="mt-3 text-sm text-[#a9bad7]">
+            Protected routes active
           </p>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function Logo() {
+function LogoBlock() {
   return (
-    <Link href="/dashboard" className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-lg font-black text-white">
-        P
+    <Link href="/dashboard" className="flex items-center gap-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#082d36]">
+        <PlanoraLogo className="h-7 w-7" />
       </div>
 
-      <div className="min-w-0">
-        <p className="text-lg font-black leading-none tracking-tight text-slate-950">
-          Planora
-        </p>
-        <p className="mt-1 text-xs font-semibold text-slate-500">
-          Admin Dashboard
+      <div>
+        <p className="text-xl font-black leading-none text-white">Planora</p>
+        <p className="mt-2 text-sm font-semibold text-[#93b8e8]">
+          Admin dashboard
         </p>
       </div>
     </Link>
