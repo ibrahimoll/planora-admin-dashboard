@@ -2,6 +2,7 @@
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { Reveal } from "@/components/ui/Reveal";
 import { StatCard } from "@/components/ui/StatCard";
 import { api } from "@/lib/api";
 import type {
@@ -373,87 +374,91 @@ export default function AdminUsersPage() {
 
   return (
     <PageTransition className="space-y-6 pb-10">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GlassCard className="p-0">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <Reveal>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <GlassCard className="p-0">
+            <div className="p-6 sm:p-8">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
+                    <Users size={15} />
+                    Users
+                  </p>
+                  <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                    Admin users
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+                    Manage account access, roles, email verification, and recent
+                    activity for Planora users.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={refreshUsers}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
+                >
+                  <RefreshCw size={17} />
+                  Refresh users
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
+                <ShieldCheck size={22} />
+              </div>
               <div>
-                <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-200">
-                  <Users size={15} />
-                  Users
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Admin actions
                 </p>
-                <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                  Admin users
-                </h1>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                  Manage account access, roles, email verification, and recent
-                  activity for Planora users.
+                <p className="mt-1 text-sm leading-6 text-slate-300">
+                  Actions are sent through the existing protected admin API.
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={refreshUsers}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-teal-400"
-              >
-                <RefreshCw size={17} />
-                Refresh users
-              </button>
             </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        </section>
+      </Reveal>
 
-        <GlassCard>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Admin actions
-              </p>
-              <p className="mt-1 text-sm leading-6 text-slate-300">
-                Actions are sent through the existing protected admin API.
-              </p>
-            </div>
-          </div>
-        </GlassCard>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Filtered users"
-          value={loadingUsers ? "--" : stats.total}
-          detail="Current query"
-          icon={Users}
-          accent="cyan"
-          signal="Search results"
-        />
-        <StatCard
-          title="Active"
-          value={loadingUsers ? "--" : stats.active}
-          detail={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% active`}
-          icon={UserCheck}
-          accent="emerald"
-          signal="Account status"
-        />
-        <StatCard
-          title="Admins"
-          value={loadingUsers ? "--" : stats.admins}
-          detail="Privileged users"
-          icon={Crown}
-          accent="purple"
-          signal="Role count"
-        />
-        <StatCard
-          title="Verified"
-          value={loadingUsers ? "--" : stats.verified}
-          detail="Email confirmed"
-          icon={MailCheck}
-          accent="cyan"
-          signal="Email status"
-        />
-      </section>
+      <Reveal delay={0.04}>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            title="Filtered users"
+            value={loadingUsers ? "--" : stats.total}
+            detail="Current query"
+            icon={Users}
+            accent="cyan"
+            signal="Search results"
+          />
+          <StatCard
+            title="Active"
+            value={loadingUsers ? "--" : stats.active}
+            detail={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% active`}
+            icon={UserCheck}
+            accent="emerald"
+            signal="Account status"
+          />
+          <StatCard
+            title="Admins"
+            value={loadingUsers ? "--" : stats.admins}
+            detail="Privileged users"
+            icon={Crown}
+            accent="purple"
+            signal="Role count"
+          />
+          <StatCard
+            title="Verified"
+            value={loadingUsers ? "--" : stats.verified}
+            detail="Email confirmed"
+            icon={MailCheck}
+            accent="cyan"
+            signal="Email status"
+          />
+        </section>
+      </Reveal>
 
       {(error || notice) && (
         <GlassCard
@@ -475,397 +480,403 @@ export default function AdminUsersPage() {
         </GlassCard>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <GlassCard>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-                  User management
-                </p>
-                <h2 className="mt-2 text-2xl font-bold text-white">
-                  User list
-                </h2>
-              </div>
+      <Reveal delay={0.08}>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <GlassCard>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                    User management
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">
+                    User list
+                  </h2>
+                </div>
 
-              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
-                <Search size={18} className="shrink-0 text-slate-500" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                  placeholder="Search name, username, email..."
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 border-y border-slate-800 py-4 lg:grid-cols-3">
-              <div className="flex flex-wrap gap-2">
-                {roleOptions.map((option) => (
-                  <FilterButton
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                    current={roleFilter}
-                    onChange={setRoleFilter}
+                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 lg:w-96">
+                  <Search size={18} className="shrink-0 text-slate-500" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                    placeholder="Search name, username, email..."
                   />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {statusOptions.map((option) => (
-                  <FilterButton
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                    current={statusFilter}
-                    onChange={setStatusFilter}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {verificationOptions.map((option) => (
-                  <FilterButton
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                    current={verificationFilter}
-                    onChange={setVerificationFilter}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
-              <div className="hidden grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] border-b border-slate-800 bg-slate-900/80 px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
-                <span>User</span>
-                <span>Role</span>
-                <span>Status</span>
-                <span>Created</span>
-                <span className="text-right">Actions</span>
+                </div>
               </div>
 
-              {loadingUsers ? (
-                <div className="space-y-3 p-5">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
+              <div className="grid gap-3 border-y border-slate-800 py-4 lg:grid-cols-3">
+                <div className="flex flex-wrap gap-2">
+                  {roleOptions.map((option) => (
+                    <FilterButton
+                      key={option.value}
+                      label={option.label}
+                      value={option.value}
+                      current={roleFilter}
+                      onChange={setRoleFilter}
                     />
                   ))}
                 </div>
-              ) : users.length === 0 ? (
-                <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                    <SlidersHorizontal size={24} />
-                  </div>
-                  <h3 className="mt-4 text-xl font-bold text-white">
-                    No users matched
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                    Adjust the search or filters to show more accounts.
-                  </p>
+                <div className="flex flex-wrap gap-2">
+                  {statusOptions.map((option) => (
+                    <FilterButton
+                      key={option.value}
+                      label={option.label}
+                      value={option.value}
+                      current={statusFilter}
+                      onChange={setStatusFilter}
+                    />
+                  ))}
                 </div>
-              ) : (
-                <div className="divide-y divide-slate-800">
-                  {users.map((user) => {
-                    const isSelected = selectedUserId === user.user_id;
-                    const isCurrentAdmin =
-                      currentAdmin?.user_id === user.user_id;
-                    const actionLoading = actionUserId === user.user_id;
+                <div className="flex flex-wrap gap-2">
+                  {verificationOptions.map((option) => (
+                    <FilterButton
+                      key={option.value}
+                      label={option.label}
+                      value={option.value}
+                      current={verificationFilter}
+                      onChange={setVerificationFilter}
+                    />
+                  ))}
+                </div>
+              </div>
 
-                    return (
-                      <motion.div
-                        key={user.user_id}
-                        layout
-                        className={`grid gap-4 p-4 transition lg:grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] lg:items-center lg:px-5 ${
-                          isSelected
-                            ? "bg-teal-500/[0.08]"
-                            : "hover:bg-slate-900/60"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setSelectedUserId(user.user_id)}
-                          className="flex min-w-0 items-center gap-3 text-left"
+              <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
+                <div className="hidden grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] border-b border-slate-800 bg-slate-900/80 px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 lg:grid">
+                  <span>User</span>
+                  <span>Role</span>
+                  <span>Status</span>
+                  <span>Created</span>
+                  <span className="text-right">Actions</span>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="space-y-3 p-5">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
+                      />
+                    ))}
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
+                      <SlidersHorizontal size={24} />
+                    </div>
+                    <h3 className="mt-4 text-xl font-bold text-white">
+                      No users matched
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                      Adjust the search or filters to show more accounts.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-800">
+                    {users.map((user) => {
+                      const isSelected = selectedUserId === user.user_id;
+                      const isCurrentAdmin =
+                        currentAdmin?.user_id === user.user_id;
+                      const actionLoading = actionUserId === user.user_id;
+
+                      return (
+                        <motion.div
+                          key={user.user_id}
+                          layout
+                          className={`grid gap-4 p-4 transition lg:grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] lg:items-center lg:px-5 ${
+                            isSelected
+                              ? "bg-teal-500/[0.08]"
+                              : "hover:bg-slate-900/60"
+                          }`}
                         >
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-sm font-semibold text-teal-100">
-                            {getInitials(user)}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="flex items-center gap-2">
-                              <span className="truncate font-semibold text-white">
-                                {user.full_name || user.username}
-                              </span>
-                              {isCurrentAdmin && (
-                                <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-violet-200">
-                                  You
-                                </span>
-                              )}
-                            </span>
-                            <span className="mt-1 block truncate text-sm text-slate-400">
-                              {user.email}
-                            </span>
-                          </span>
-                        </button>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
-                              user.role === "admin"
-                                ? "border-violet-500/20 bg-violet-500/10 text-violet-200"
-                                : "border-teal-500/20 bg-teal-500/10 text-teal-200"
-                            }`}
-                          >
-                            {user.role === "admin" ? (
-                              <Crown size={13} />
-                            ) : (
-                              <Users size={13} />
-                            )}
-                            {user.role}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                              user.is_email_verified
-                                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
-                                : "border-amber-300/20 bg-amber-300/10 text-amber-200"
-                            }`}
-                          >
-                            {user.is_email_verified ? (
-                              <MailCheck size={13} />
-                            ) : (
-                              <MailWarning size={13} />
-                            )}
-                            {user.is_email_verified ? "Verified" : "Unverified"}
-                          </span>
-                        </div>
-
-                        <StatusPill active={user.is_active}>
-                          {user.is_active ? "Active" : "Inactive"}
-                        </StatusPill>
-
-                        <div className="text-sm text-slate-300">
-                          <span className="lg:hidden">Created </span>
-                          {formatDate(user.created_at)}
-                        </div>
-
-                        <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
                           <button
                             type="button"
                             onClick={() => setSelectedUserId(user.user_id)}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200"
-                            aria-label={`View ${user.username}`}
+                            className="flex min-w-0 items-center gap-3 text-left"
                           >
-                            <Eye size={16} />
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-sm font-semibold text-teal-100">
+                              {getInitials(user)}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2">
+                                <span className="truncate font-semibold text-white">
+                                  {user.full_name || user.username}
+                                </span>
+                                {isCurrentAdmin && (
+                                  <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-violet-200">
+                                    You
+                                  </span>
+                                )}
+                              </span>
+                              <span className="mt-1 block truncate text-sm text-slate-400">
+                                {user.email}
+                              </span>
+                            </span>
                           </button>
-                          <button
-                            type="button"
-                            disabled={actionLoading || isCurrentAdmin}
-                            onClick={() =>
-                              handleAction(
-                                user,
-                                user.is_active ? "deactivate" : "activate",
-                              )
-                            }
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label={
-                              user.is_active
-                                ? `Deactivate ${user.username}`
-                                : `Activate ${user.username}`
-                            }
-                          >
-                            {user.is_active ? (
-                              <UserX size={16} />
-                            ) : (
-                              <Power size={16} />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={actionLoading || isCurrentAdmin}
-                            onClick={() =>
-                              handleAction(
-                                user,
-                                user.role === "admin" ? "demote" : "promote",
-                              )
-                            }
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-violet-500/25 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label={
-                              user.role === "admin"
-                                ? `Demote ${user.username}`
-                                : `Promote ${user.username}`
-                            }
-                          >
-                            {user.role === "admin" ? (
-                              <ShieldOff size={16} />
-                            ) : (
-                              <ShieldCheck size={16} />
-                            )}
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </GlassCard>
 
-        <GlassCard>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                User detail
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">
-                Account summary
-              </h2>
-            </div>
-            <Activity size={22} className="text-teal-300" />
-          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
+                                user.role === "admin"
+                                  ? "border-violet-500/20 bg-violet-500/10 text-violet-200"
+                                  : "border-teal-500/20 bg-teal-500/10 text-teal-200"
+                              }`}
+                            >
+                              {user.role === "admin" ? (
+                                <Crown size={13} />
+                              ) : (
+                                <Users size={13} />
+                              )}
+                              {user.role}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                                user.is_email_verified
+                                  ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
+                                  : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+                              }`}
+                            >
+                              {user.is_email_verified ? (
+                                <MailCheck size={13} />
+                              ) : (
+                                <MailWarning size={13} />
+                              )}
+                              {user.is_email_verified
+                                ? "Verified"
+                                : "Unverified"}
+                            </span>
+                          </div>
 
-          {loadingDetail ? (
-            <div className="mt-6 space-y-3">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
-                />
-              ))}
-            </div>
-          ) : selectedUser ? (
-            <div className="mt-6 space-y-5">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-5 text-center">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-teal-500/20 bg-teal-500/10 text-2xl font-semibold text-teal-100">
-                  {getInitials(selectedUser)}
-                </div>
-                <h3 className="mt-4 text-2xl font-semibold text-white">
-                  {selectedUser.full_name || selectedUser.username}
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  @{selectedUser.username}
-                </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <StatusPill active={selectedUser.is_active}>
-                    {selectedUser.is_active ? "Active" : "Inactive"}
-                  </StatusPill>
-                  <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold capitalize text-violet-200">
-                    {selectedUser.role}
-                  </span>
-                </div>
-              </div>
+                          <StatusPill active={user.is_active}>
+                            {user.is_active ? "Active" : "Inactive"}
+                          </StatusPill>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  {
-                    label: "Projects",
-                    value: selectedUser.counts.projects_created,
-                  },
-                  {
-                    label: "Assigned",
-                    value: selectedUser.counts.assigned_tasks,
-                  },
-                  {
-                    label: "Created",
-                    value: selectedUser.counts.created_tasks,
-                  },
-                  {
-                    label: "Notices",
-                    value: selectedUser.counts.notifications,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                      {item.label}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
-                      {item.value}
-                    </p>
+                          <div className="text-sm text-slate-300">
+                            <span className="lg:hidden">Created </span>
+                            {formatDate(user.created_at)}
+                          </div>
+
+                          <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedUserId(user.user_id)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200"
+                              aria-label={`View ${user.username}`}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionLoading || isCurrentAdmin}
+                              onClick={() =>
+                                handleAction(
+                                  user,
+                                  user.is_active ? "deactivate" : "activate",
+                                )
+                              }
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200 disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={
+                                user.is_active
+                                  ? `Deactivate ${user.username}`
+                                  : `Activate ${user.username}`
+                              }
+                            >
+                              {user.is_active ? (
+                                <UserX size={16} />
+                              ) : (
+                                <Power size={16} />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionLoading || isCurrentAdmin}
+                              onClick={() =>
+                                handleAction(
+                                  user,
+                                  user.role === "admin" ? "demote" : "promote",
+                                )
+                              }
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-violet-500/25 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={
+                                user.role === "admin"
+                                  ? `Demote ${user.username}`
+                                  : `Promote ${user.username}`
+                              }
+                            >
+                              {user.role === "admin" ? (
+                                <ShieldOff size={16} />
+                              ) : (
+                                <ShieldCheck size={16} />
+                              )}
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
-                  Recent activity
-                </p>
-                {activity.length === 0 ? (
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
-                    No recent activity found for this user.
-                  </div>
-                ) : (
-                  activity.map((event) => (
-                    <div
-                      key={event.activity_id}
-                      className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            {event.event_type.replaceAll("_", " ")}
-                          </p>
-                          <p className="mt-1 text-sm leading-5 text-slate-400">
-                            {event.message}
-                          </p>
-                          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                            <Clock3 size={13} />
-                            {formatRelative(event.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
                 )}
               </div>
+            </div>
+          </GlassCard>
 
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  disabled={
-                    Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
-                  }
-                  onClick={() =>
-                    handleAction(
-                      selectedUser,
-                      selectedUser.is_active ? "deactivate" : "activate",
-                    )
-                  }
-                  className="rounded-xl border border-teal-500/20 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {selectedUser.is_active ? "Deactivate user" : "Activate user"}
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
-                  }
-                  onClick={() =>
-                    handleAction(
-                      selectedUser,
-                      selectedUser.role === "admin" ? "demote" : "promote",
-                    )
-                  }
-                  className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {selectedUser.role === "admin"
-                    ? "Demote to user"
-                    : "Promote to admin"}
-                </button>
+          <GlassCard>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  User detail
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-white">
+                  Account summary
+                </h2>
               </div>
+              <Activity size={22} className="text-teal-300" />
             </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
-              <p className="text-sm text-slate-400">
-                Select a user to view account details.
-              </p>
-            </div>
-          )}
-        </GlassCard>
-      </section>
+
+            {loadingDetail ? (
+              <div className="mt-6 space-y-3">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
+                  />
+                ))}
+              </div>
+            ) : selectedUser ? (
+              <div className="mt-6 space-y-5">
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/35 p-5 text-center">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-teal-500/20 bg-teal-500/10 text-2xl font-semibold text-teal-100">
+                    {getInitials(selectedUser)}
+                  </div>
+                  <h3 className="mt-4 text-2xl font-semibold text-white">
+                    {selectedUser.full_name || selectedUser.username}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    @{selectedUser.username}
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <StatusPill active={selectedUser.is_active}>
+                      {selectedUser.is_active ? "Active" : "Inactive"}
+                    </StatusPill>
+                    <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold capitalize text-violet-200">
+                      {selectedUser.role}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      label: "Projects",
+                      value: selectedUser.counts.projects_created,
+                    },
+                    {
+                      label: "Assigned",
+                      value: selectedUser.counts.assigned_tasks,
+                    },
+                    {
+                      label: "Created",
+                      value: selectedUser.counts.created_tasks,
+                    },
+                    {
+                      label: "Notices",
+                      value: selectedUser.counts.notifications,
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        {item.label}
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                    Recent activity
+                  </p>
+                  {activity.length === 0 ? (
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
+                      No recent activity found for this user.
+                    </div>
+                  ) : (
+                    activity.map((event) => (
+                      <div
+                        key={event.activity_id}
+                        className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white">
+                              {event.event_type.replaceAll("_", " ")}
+                            </p>
+                            <p className="mt-1 text-sm leading-5 text-slate-400">
+                              {event.message}
+                            </p>
+                            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                              <Clock3 size={13} />
+                              {formatRelative(event.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="grid gap-3">
+                  <button
+                    type="button"
+                    disabled={
+                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                    }
+                    onClick={() =>
+                      handleAction(
+                        selectedUser,
+                        selectedUser.is_active ? "deactivate" : "activate",
+                      )
+                    }
+                    className="rounded-xl border border-teal-500/20 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {selectedUser.is_active
+                      ? "Deactivate user"
+                      : "Activate user"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                    }
+                    onClick={() =>
+                      handleAction(
+                        selectedUser,
+                        selectedUser.role === "admin" ? "demote" : "promote",
+                      )
+                    }
+                    className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {selectedUser.role === "admin"
+                      ? "Demote to user"
+                      : "Promote to admin"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
+                <p className="text-sm text-slate-400">
+                  Select a user to view account details.
+                </p>
+              </div>
+            )}
+          </GlassCard>
+        </section>
+      </Reveal>
     </PageTransition>
   );
 }
