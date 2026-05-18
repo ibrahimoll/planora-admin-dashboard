@@ -47,6 +47,15 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatDateShort(value: string | null | undefined) {
+  if (!value) return "Not set";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "Not available";
 
@@ -220,6 +229,24 @@ export default function AdminReportsPage() {
           background: linear-gradient(180deg, #2dd4bf, #0d9488);
         }
 
+        .report-select {
+          color-scheme: dark;
+          background-color: rgba(2, 6, 23, 0.9);
+          color: #f8fafc;
+        }
+
+        .report-select option {
+          background-color: #020617;
+          color: #f8fafc;
+        }
+
+        .report-select option:checked,
+        .report-select option:hover,
+        .report-select option:focus {
+          background-color: #0f172a;
+          color: #ffffff;
+        }
+
         @media print {
           body {
             background: white !important;
@@ -338,23 +365,26 @@ export default function AdminReportsPage() {
                   <label className="text-sm font-medium text-slate-300">
                     Select project
                   </label>
-                  <select
-                    value={selectedProjectId ?? ""}
-                    onChange={(event) =>
-                      setSelectedProjectId(Number(event.target.value))
-                    }
-                    disabled={loadingProjects || filteredProjects.length === 0}
-                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-500"
-                  >
-                    {filteredProjects.map((project) => (
-                      <option
-                        key={project.project_id}
-                        value={project.project_id}
-                      >
-                        {project.title}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-2">
+                    <select
+                      value={selectedProjectId ?? ""}
+                      onChange={(event) =>
+                        setSelectedProjectId(Number(event.target.value))
+                      }
+                      disabled={loadingProjects || filteredProjects.length === 0}
+                      className="report-select w-full rounded-xl border border-teal-500/70 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-400"
+                    >
+                      {filteredProjects.map((project) => (
+                        <option
+                          key={project.project_id}
+                          value={project.project_id}
+                          className="bg-slate-950 text-white"
+                        >
+                          {project.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -575,7 +605,7 @@ export default function AdminReportsPage() {
               </Reveal>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.55fr)_minmax(0,1.45fr)]">
               <Reveal>
                 <GlassCard className="report-equal-card flex h-[520px] flex-col">
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
@@ -618,13 +648,13 @@ export default function AdminReportsPage() {
                   </h3>
 
                   <div className="mt-5 flex-1 overflow-hidden rounded-2xl border border-slate-800">
-                    <div className="custom-report-scroll h-full overflow-auto">
-                      <div className="min-w-[760px]">
-                        <div className="sticky top-0 z-10 grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr] bg-slate-950 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <div className="custom-report-scroll h-full overflow-y-auto overflow-x-hidden">
+                      <div className="w-full">
+                        <div className="sticky top-0 z-10 grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 bg-slate-950 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                           <span>Task</span>
                           <span>Status</span>
                           <span>Priority</span>
-                          <span>Due</span>
+                          <span className="text-right">Due</span>
                         </div>
 
                         {report.tasks.length === 0 ? (
@@ -643,7 +673,7 @@ export default function AdminReportsPage() {
                             return (
                               <div
                                 key={task.task_id}
-                                className="grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr] gap-3 border-t border-slate-800 px-4 py-4 text-sm transition hover:bg-slate-950/35"
+                                className="grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 border-t border-slate-800 px-4 py-4 text-sm transition hover:bg-slate-950/35"
                               >
                                 <div className="min-w-0">
                                   <p
@@ -660,16 +690,19 @@ export default function AdminReportsPage() {
                                   </p>
                                 </div>
 
-                                <span className="capitalize text-slate-300">
+                                <span className="truncate capitalize text-slate-300">
                                   {formatStatus(task.status)}
                                 </span>
 
-                                <span className="capitalize text-slate-300">
+                                <span className="truncate capitalize text-slate-300">
                                   {task.priority}
                                 </span>
 
-                                <span className="text-slate-300">
-                                  {formatDate(task.due_date)}
+                                <span
+                                  className="truncate text-right text-slate-300"
+                                  title={formatDate(task.due_date)}
+                                >
+                                  {formatDateShort(task.due_date)}
                                 </span>
                               </div>
                             );
