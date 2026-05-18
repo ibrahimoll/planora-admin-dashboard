@@ -26,13 +26,13 @@ const navItems = [
     label: "Risk",
     href: "/dashboard/risk",
     icon: AlertTriangle,
-    ready: false,
+    ready: true,
   },
   {
     label: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
-    ready: false,
+    ready: true,
   },
 ];
 

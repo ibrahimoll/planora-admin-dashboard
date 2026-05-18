@@ -219,4 +219,24 @@ export type AdminTaskActionResponse = {
   task: AdminTaskDetail;
   admin_log_id: number;
 };
-  
+
+export type AdminRiskCenterSummary = {
+  total_projects: number;
+  projects_with_risk_records: number;
+  high_risk_projects: number;
+  medium_risk_projects: number;
+  low_risk_projects: number;
+  overdue_active_projects: number;
+  blocked_task_projects: number;
+  generated_at: string;
+};
+
+export type AdminHighRiskProject = {
+  project: AdminProjectSummary;
+  risk_id: number;
+  risk_level: string;
+  predicted_delay_days: number;
+  reason: string;
+  recommendation: string;
+  created_at: string;
+};

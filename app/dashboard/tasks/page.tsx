@@ -231,12 +231,6 @@ export default function AdminTasksPage() {
     return () => window.clearTimeout(timeoutId);
   }, [fetchTasks]);
 
-  useEffect(() => {
-    if (selectedTaskId) {
-      void fetchTaskDetail(selectedTaskId);
-    }
-  }, [fetchTaskDetail, selectedTaskId]);
-
   async function refreshAfterAction(taskId: number, message: string) {
     await fetchTasks();
     await fetchTaskDetail(taskId);
