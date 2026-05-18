@@ -33,6 +33,8 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -178,6 +180,26 @@ function getChartTotal(data: ChartPoint[]) {
   return data.reduce((sum, item) => sum + item.value, 0);
 }
 
+function getPlaceholderChartData(data: ChartPoint[]) {
+  const fallbackValues = [4, 3, 2, 3, 1];
+
+  if (data.length === 0) {
+    return [
+      {
+        label: "No records",
+        value: 1,
+        color: "#334155",
+      },
+    ];
+  }
+
+  return data.map((item, index) => ({
+    ...item,
+    value: fallbackValues[index] ?? 1,
+    color: "#334155",
+  }));
+}
+
 function ChartTooltip({
   active,
   payload,
@@ -199,6 +221,21 @@ function ChartTooltip({
       <p className="mt-1 text-slate-400">
         Count: <span className="font-semibold text-teal-200">{value}</span>
       </p>
+    </div>
+  );
+}
+
+function NoRecordsOverlay() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+      <div className="rounded-2xl border border-slate-700/80 bg-slate-950/85 px-5 py-4 text-center shadow-xl shadow-black/30 backdrop-blur-md">
+        <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-200">
+          No records
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Data will appear when records exist.
+        </p>
+      </div>
     </div>
   );
 }
@@ -263,48 +300,56 @@ function DonutChartBlock({
   centerLabel: string;
   centerValue: string;
 }) {
-  const visibleData = data.filter((item) => item.value > 0);
   const total = getChartTotal(data);
-
-  if (total === 0) {
-    return (
-      <div className="flex h-[260px] items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/35 text-sm text-slate-500">
-        No chart data yet.
-      </div>
-    );
-  }
+  const isEmpty = total === 0;
+  const chartData = isEmpty
+    ? getPlaceholderChartData(data)
+    : data.filter((item) => item.value > 0);
 
   return (
     <>
-      <div className="relative h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Tooltip content={<ChartTooltip />} />
-            <Pie
-              data={visibleData}
-              dataKey="value"
-              nameKey="label"
-              innerRadius="58%"
-              outerRadius="82%"
-              paddingAngle={3}
-              stroke="#0f172a"
-              strokeWidth={4}
-            >
-              {visibleData.map((entry) => (
-                <Cell key={entry.label} fill={entry.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20">
+        <div
+          className={`h-full transition ${
+            isEmpty ? "blur-[2.5px] opacity-40" : ""
+          }`}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              {!isEmpty && <Tooltip content={<ChartTooltip />} />}
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="label"
+                innerRadius="58%"
+                outerRadius="82%"
+                minAngle={6}
+                paddingAngle={3}
+                stroke="#0f172a"
+                strokeWidth={4}
+              >
+                {chartData.map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
+        <div
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center transition ${
+            isEmpty ? "blur-[1px] opacity-45" : ""
+          }`}
+        >
+          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/80 px-5 py-4 text-center shadow-xl shadow-black/20">
             <p className="text-3xl font-bold text-white">{centerValue}</p>
             <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               {centerLabel}
             </p>
           </div>
         </div>
+
+        {isEmpty && <NoRecordsOverlay />}
       </div>
 
       <ChartLegend data={data} />
@@ -314,50 +359,140 @@ function DonutChartBlock({
 
 function BarChartBlock({ data }: { data: ChartPoint[] }) {
   const total = getChartTotal(data);
-
-  if (total === 0) {
-    return (
-      <div className="flex h-[260px] items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-950/35 text-sm text-slate-500">
-        No chart data yet.
-      </div>
-    );
-  }
+  const isEmpty = total === 0;
+  const chartData = isEmpty ? getPlaceholderChartData(data) : data;
 
   return (
     <>
-      <div className="h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 8, right: 8, left: -24, bottom: 0 }}
-            barCategoryGap="28%"
-          >
-            <CartesianGrid
-              stroke="#1e293b"
-              strokeDasharray="4 4"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip cursor={{ fill: "rgba(15, 23, 42, 0.55)" }} content={<ChartTooltip />} />
-            <Bar dataKey="value" radius={[9, 9, 0, 0]}>
-              {data.map((entry) => (
-                <Cell key={entry.label} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
+        <div
+          className={`h-full transition ${
+            isEmpty ? "blur-[2.5px] opacity-40" : ""
+          }`}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
+              barCategoryGap="26%"
+            >
+              <CartesianGrid
+                stroke="#334155"
+                strokeDasharray="3 3"
+                horizontal
+                vertical
+                opacity={0.45}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "#94a3b8", fontSize: 12 }}
+                axisLine={{ stroke: "#334155" }}
+                tickLine={{ stroke: "#334155" }}
+                interval={0}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#64748b", fontSize: 12 }}
+                axisLine={{ stroke: "#334155" }}
+                tickLine={{ stroke: "#334155" }}
+              />
+              {!isEmpty && (
+                <Tooltip
+                  cursor={{ fill: "rgba(15, 23, 42, 0.55)" }}
+                  content={<ChartTooltip />}
+                />
+              )}
+              <Bar dataKey="value" radius={[9, 9, 0, 0]}>
+                {chartData.map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {isEmpty && <NoRecordsOverlay />}
+      </div>
+
+      <ChartLegend data={data} />
+    </>
+  );
+}
+
+function RiskLineChartBlock({ data }: { data: ChartPoint[] }) {
+  const total = getChartTotal(data);
+  const isEmpty = total === 0;
+  const chartData = isEmpty ? getPlaceholderChartData(data) : data;
+  const maxValue = Math.max(...chartData.map((item) => item.value), 0);
+  const yMax = Math.max(maxValue + 1, 1);
+
+  return (
+    <>
+      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
+        <div
+          className={`h-full transition ${
+            isEmpty ? "blur-[2.5px] opacity-40" : ""
+          }`}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{ top: 12, right: 18, left: -18, bottom: 0 }}
+            >
+              <CartesianGrid
+                stroke="#334155"
+                strokeDasharray="3 3"
+                horizontal
+                vertical
+                opacity={0.55}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "#94a3b8", fontSize: 12 }}
+                axisLine={{ stroke: "#334155" }}
+                tickLine={{ stroke: "#334155" }}
+                interval={0}
+              />
+              <YAxis
+                allowDecimals={false}
+                domain={[0, yMax]}
+                tick={{ fill: "#64748b", fontSize: 12 }}
+                axisLine={{ stroke: "#334155" }}
+                tickLine={{ stroke: "#334155" }}
+              />
+              {!isEmpty && (
+                <Tooltip
+                  cursor={{
+                    stroke: "#14b8a6",
+                    strokeWidth: 1,
+                    strokeDasharray: "4 4",
+                  }}
+                  content={<ChartTooltip />}
+                />
+              )}
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#14b8a6"
+                strokeWidth={3}
+                dot={{
+                  r: 6,
+                  stroke: "#0f172a",
+                  strokeWidth: 3,
+                  fill: "#14b8a6",
+                }}
+                activeDot={{
+                  r: 8,
+                  stroke: "#ccfbf1",
+                  strokeWidth: 2,
+                  fill: "#14b8a6",
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {isEmpty && <NoRecordsOverlay />}
       </div>
 
       <ChartLegend data={data} />
@@ -722,16 +857,10 @@ export default function DashboardPage() {
 
         <ChartCard
           eyebrow="Risk"
-          title="Risk distribution"
-          description="Low, medium, and high-risk records in the system."
+          title="Risk severity line"
+          description="Line diagram showing low, medium, and high risk records."
         >
-          <DonutChartBlock
-            data={riskData}
-            centerLabel="Risk records"
-            centerValue={
-              loading ? "--" : formatCount(risks.total_risk_records)
-            }
-          />
+          <RiskLineChartBlock data={riskData} />
         </ChartCard>
       </section>
 
