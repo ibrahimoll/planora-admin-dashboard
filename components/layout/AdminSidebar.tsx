@@ -19,7 +19,7 @@ const navItems = [
     label: "Projects",
     href: "/dashboard/projects",
     icon: FolderKanban,
-    ready: false,
+    ready: true,
   },
   { label: "Tasks", href: "/dashboard/tasks", icon: ListChecks, ready: false },
   {

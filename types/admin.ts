@@ -107,3 +107,67 @@ export type AdminTask = {
   priority: "low" | "medium" | "high";
   due_date: string | null;
 };
+
+export type AdminProjectStatus =
+  | "not_started"
+  | "in_progress"
+  | "completed"
+  | "on_hold"
+  | "cancelled";
+
+export type AdminProjectType = "personal" | "team";
+
+export type AdminProjectOwner = {
+  user_id: number;
+  username: string;
+  email: string;
+  full_name: string;
+};
+
+export type AdminProjectTeam = {
+  team_id: number;
+  name: string;
+  created_by: number;
+};
+
+export type AdminProjectTaskStats = {
+  total_tasks: number;
+  todo_tasks: number;
+  in_progress_tasks: number;
+  completed_tasks: number;
+  blocked_tasks: number;
+  overdue_tasks: number;
+  completion_percentage: number;
+};
+
+export type AdminProjectRisk = {
+  risk_id: number;
+  risk_level: string;
+  predicted_delay_days: number;
+  created_at: string;
+};
+
+export type AdminProjectSummary = {
+  project_id: number;
+  title: string;
+  deadline: string;
+  status: AdminProjectStatus;
+  project_type: AdminProjectType;
+  created_at: string;
+  updated_at: string;
+  owner: AdminProjectOwner;
+  team: AdminProjectTeam | null;
+  task_stats: AdminProjectTaskStats;
+  latest_risk: AdminProjectRisk | null;
+};
+
+export type AdminProjectDetail = AdminProjectSummary & {
+  description: string | null;
+  members_count: number;
+};
+
+export type AdminProjectStatusUpdateResponse = {
+  message: string;
+  project: AdminProjectDetail;
+  admin_log_id: number;
+};
