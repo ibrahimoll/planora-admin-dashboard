@@ -768,9 +768,10 @@ export default function AdminProjectsPage() {
               )}
             </div>
           </GlassCard>
+
           <GlassCard className="min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Project detail
                 </p>
@@ -778,7 +779,7 @@ export default function AdminProjectsPage() {
                   Delivery summary
                 </h2>
               </div>
-              <FolderKanban size={22} className="text-teal-300" />
+              <FolderKanban size={22} className="shrink-0 text-teal-300" />
             </div>
 
             {loadingDetail ? (
@@ -797,7 +798,7 @@ export default function AdminProjectsPage() {
                     Project summary
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-semibold text-white">
+                  <h3 className="mt-2 break-words text-2xl font-semibold text-white">
                     {selectedProject.title}
                   </h3>
 
