@@ -171,3 +171,52 @@ export type AdminProjectStatusUpdateResponse = {
   project: AdminProjectDetail;
   admin_log_id: number;
 };
+
+export type AdminTaskStatus = "todo" | "in_progress" | "completed" | "blocked";
+
+export type AdminTaskPriority = "low" | "medium" | "high";
+
+export type AdminTaskUser = {
+  user_id: number;
+  username: string;
+  email: string;
+  full_name: string;
+};
+
+export type AdminTaskProject = {
+  project_id: number;
+  title: string;
+  status: string;
+  project_type: string;
+  team_id: number | null;
+  team_name: string | null;
+};
+
+export type AdminTaskSummary = {
+  task_id: number;
+  title: string;
+  priority: AdminTaskPriority;
+  status: AdminTaskStatus;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+  estimated_hours: number | null;
+  actual_hours: number | null;
+  is_overdue: boolean;
+  project: AdminTaskProject;
+  assignee: AdminTaskUser | null;
+  creator: AdminTaskUser;
+};
+
+export type AdminTaskDetail = AdminTaskSummary & {
+  description: string | null;
+  comments_count: number;
+  attachments_count: number;
+};
+
+export type AdminTaskActionResponse = {
+  message: string;
+  task: AdminTaskDetail;
+  admin_log_id: number;
+};
+  
