@@ -1,5 +1,6 @@
 "use client";
 
+import { clearAdminToken } from "@/lib/auth";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -56,6 +57,10 @@ type ProfileUpdateResponse = {
 };
 
 type ChangePasswordResponse = {
+  message: string;
+};
+
+type DeleteAccountResponse = {
   message: string;
 };
 
@@ -215,6 +220,12 @@ export default function AdminSettingsPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -441,6 +452,42 @@ export default function AdminSettingsPage() {
       );
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function handleDeleteAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setDeleteError("");
+
+    if (!deletePassword.trim()) {
+      setDeleteError("Current password is required.");
+      return;
+    }
+
+    if (deleteConfirmation !== "DELETE MY ACCOUNT") {
+      setDeleteError('Type "DELETE MY ACCOUNT" exactly to confirm.');
+      return;
+    }
+
+    setDeletingAccount(true);
+
+    try {
+      await api.delete<DeleteAccountResponse>("/profile", {
+        data: {
+          current_password: deletePassword,
+          confirmation_text: deleteConfirmation,
+        },
+      });
+
+      clearAdminToken();
+      window.location.assign("/login");
+    } catch (requestError) {
+      setDeleteError(
+        getApiErrorMessage(requestError, "Unable to delete this account."),
+      );
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -763,6 +810,80 @@ export default function AdminSettingsPage() {
                     <KeyRound size={17} />
                   )}
                   Change password
+                </button>
+              </form>
+            </GlassCard>
+          </Reveal>
+
+          <Reveal delay={0.14}>
+            <GlassCard className="border-rose-500/20 bg-rose-500/5" glow="rose">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-300">
+                    Danger zone
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">
+                    Delete account
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    This deactivates your admin account and signs you out
+                    immediately. You will not be able to access protected admin
+                    routes after deletion.
+                  </p>
+                </div>
+
+                <Trash2 className="shrink-0 text-rose-300" size={22} />
+              </div>
+
+              {deleteError && (
+                <div className="mt-5 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                  {deleteError}
+                </div>
+              )}
+
+              <form onSubmit={handleDeleteAccount} className="mt-6 space-y-5">
+                <PasswordField
+                  id="settings-delete-password"
+                  label="Current password"
+                  value={deletePassword}
+                  onChange={setDeletePassword}
+                  show={showDeletePassword}
+                  onToggleShow={() => setShowDeletePassword((value) => !value)}
+                />
+
+                <div>
+                  <label
+                    htmlFor="settings-delete-confirmation"
+                    className="text-sm font-medium text-slate-300"
+                  >
+                    Type DELETE MY ACCOUNT
+                  </label>
+                  <input
+                    id="settings-delete-confirmation"
+                    value={deleteConfirmation}
+                    onChange={(event) =>
+                      setDeleteConfirmation(event.target.value)
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-rose-500"
+                    placeholder="DELETE MY ACCOUNT"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={
+                    deletingAccount ||
+                    !deletePassword.trim() ||
+                    deleteConfirmation !== "DELETE MY ACCOUNT"
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500 bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingAccount ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={17} />
+                  )}
+                  Delete my account
                 </button>
               </form>
             </GlassCard>
