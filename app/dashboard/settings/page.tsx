@@ -1,11 +1,11 @@
 "use client";
 
-import { clearAdminToken } from "@/lib/auth";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
 import { API_BASE_URL, api } from "@/lib/api";
+import { clearAdminToken } from "@/lib/auth";
 import type {
   AdminDeviceToken,
   AdminNotificationPreference,
@@ -915,6 +915,7 @@ function PushNotificationSection() {
     "This is a test push from the admin dashboard.",
   );
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isRegisteringBrowser, setIsRegisteringBrowser] = useState(false);
   const [testResult, setTestResult] = useState<AdminPushTestResponse | null>(
     null,
   );
@@ -1027,6 +1028,35 @@ function PushNotificationSection() {
       );
     } finally {
       setDeactivatingTokenId(null);
+    }
+  }
+
+  async function handleRegisterBrowserToken() {
+    setError("");
+    setNotice("");
+    setTestResult(null);
+    setIsRegisteringBrowser(true);
+
+    try {
+      const token = await registerBrowserFcmToken();
+
+      await api.post("/push-notifications/device-tokens", {
+        token,
+        platform: "web",
+      });
+
+      setNotice("This browser was registered for push notifications.");
+      await loadPushSettings();
+
+      window.setTimeout(() => setNotice(""), 3000);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to register this browser for push notifications.",
+      );
+    } finally {
+      setIsRegisteringBrowser(false);
     }
   }
 
@@ -1188,6 +1218,38 @@ function PushNotificationSection() {
             </div>
           </div>
 
+          <div className="rounded-2xl border border-teal-500/20 bg-teal-500/10 p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Smartphone size={18} className="text-teal-300" />
+                  <h3 className="text-lg font-semibold text-white">
+                    Register this browser
+                  </h3>
+                </div>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                  Allow notifications and save this browser&apos;s Firebase
+                  token so Planora can send real browser push notifications to
+                  this admin account.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void handleRegisterBrowserToken()}
+                disabled={isRegisteringBrowser}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-teal-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRegisteringBrowser ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <Smartphone size={17} />
+                )}
+                Register browser
+              </button>
+            </div>
+          </div>
           <form
             onSubmit={handleSendTestPush}
             className="rounded-2xl border border-slate-800 bg-slate-950/45 p-5"
