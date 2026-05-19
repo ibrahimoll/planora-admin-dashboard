@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -16,7 +18,6 @@ import {
   Clock3,
   FolderKanban,
   Gauge,
-  Loader2,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -124,11 +125,11 @@ export default function AdminRiskPage() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-        void loadRiskData();
+      void loadRiskData();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-    }, [loadRiskData]);
+  }, [loadRiskData]);
 
   const riskState = useMemo(() => {
     if (summary.high_risk_projects > 0) {
@@ -182,9 +183,10 @@ export default function AdminRiskPage() {
         <button
           type="button"
           onClick={() => void loadRiskData()}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -211,7 +213,9 @@ export default function AdminRiskPage() {
               <span className="text-sm text-slate-400">
                 Last updated:{" "}
                 <span className="font-medium text-slate-200">
-                  {isLoading ? "Loading..." : formatDateTime(summary.generated_at)}
+                  {isLoading
+                    ? "Loading..."
+                    : formatDateTime(summary.generated_at)}
                 </span>
               </span>
             </div>
@@ -334,22 +338,17 @@ export default function AdminRiskPage() {
 
           <div className="mt-6">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="flex items-center gap-3 text-slate-300">
-                  <Loader2 size={20} className="animate-spin text-teal-300" />
-                  Loading risk records...
-                </div>
-              </div>
+              <AdminLoadingState
+                title="Loading risk center"
+                message="Checking latest project risk records."
+                rows={4}
+              />
             ) : projects.length === 0 ? (
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-12 text-center">
-                <ShieldCheck size={36} className="mx-auto text-emerald-300" />
-                <h3 className="mt-4 text-lg font-semibold text-white">
-                  No high-risk projects
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  There are no high-risk projects in the current risk report.
-                </p>
-              </div>
+              <AdminEmptyState
+                icon={ShieldCheck}
+                title="No high-risk projects"
+                message="There are no high-risk projects in the current risk report."
+              />
             ) : (
               <div className="space-y-4">
                 {projects.map((item) => (
