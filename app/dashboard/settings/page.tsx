@@ -34,6 +34,7 @@ import {
   Upload,
   XCircle,
 } from "lucide-react";
+import Image from "next/image";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -488,9 +489,12 @@ export default function AdminSettingsPage() {
             <div className="flex flex-col items-center text-center">
               <div className="relative">
                 {profileImageSrc ? (
-                  <img
+                  <Image
                     src={profileImageSrc}
                     alt="Admin profile"
+                    width={112}
+                    height={112}
+                    unoptimized
                     className="h-28 w-28 rounded-3xl border border-teal-500/20 object-cover shadow-lg shadow-black/25"
                   />
                 ) : (
