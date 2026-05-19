@@ -1,5 +1,7 @@
-"use client";
+﻿"use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -769,7 +771,7 @@ export default function AdminTasksPage() {
                   <p className="mt-1 text-slate-400">
                     {selectedTask.project.project_type}
                     {selectedTask.project.team_name
-                      ? ` · ${selectedTask.project.team_name}`
+                      ? ` Â· ${selectedTask.project.team_name}`
                       : ""}
                   </p>
                 </div>
@@ -932,3 +934,4 @@ export default function AdminTasksPage() {
     </PageTransition>
   );
 }
+
