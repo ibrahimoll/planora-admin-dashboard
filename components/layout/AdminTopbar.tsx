@@ -2,28 +2,6 @@
 "use client";
 
 import {
-  AlertTriangle,
-  BarChart3,
-  Bell,
-  CheckSquare,
-  ChevronDown,
-  FolderKanban,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  Search,
-  Settings,
-  ScrollText,
-  UserCircle,
-  Users,
-  X,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { clearAdminToken } from "@/lib/auth";
-import {
   ADMIN_PROFILE_UPDATED_EVENT,
   buildProfileImageUrl,
   getAdminDisplayName,
@@ -33,11 +11,33 @@ import {
   type AdminUser,
 } from "@/lib/adminProfileSync";
 import { api } from "@/lib/api";
+import { clearAdminToken } from "@/lib/auth";
 import {
   ADMIN_NOTIFICATIONS_UPDATED_EVENT,
   dispatchAdminNotificationsUpdated,
 } from "@/lib/notificationEvents";
 import type { AdminNotification } from "@/types/admin";
+import {
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  CheckSquare,
+  ChevronDown,
+  FolderKanban,
+  LayoutDashboard,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ScrollText,
+  Search,
+  Settings,
+  UserCircle,
+  Users,
+  X,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type AdminTopbarProps = {
   sidebarOpen: boolean;
@@ -258,7 +258,8 @@ export default function AdminTopbar({
   const displayName = getAdminDisplayName(adminProfile);
   const initials = getAdminInitials(adminProfile);
   const profileImageUrl = buildProfileImageUrl(adminProfile?.profile_pic);
-  const shouldShowProfileImage = Boolean(profileImageUrl) && !profileImageBroken;
+  const shouldShowProfileImage =
+    Boolean(profileImageUrl) && !profileImageBroken;
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -323,7 +324,11 @@ export default function AdminTopbar({
           className="group flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#1d2942] bg-[#0d1424] text-[#8ea3c7] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#20d6c7]/60 hover:bg-[#101a2d] hover:text-[#20d6c7] hover:shadow-[0_12px_35px_rgba(32,214,199,0.12)] active:translate-y-0"
         >
           <span className="transition-transform duration-200 group-hover:scale-110">
-            {sidebarOpen ? <PanelLeftClose size={22} /> : <Menu size={22} />}
+            {sidebarOpen ? (
+              <PanelLeftClose size={22} />
+            ) : (
+              <PanelLeftOpen size={22} />
+            )}{" "}
           </span>
         </button>
 
