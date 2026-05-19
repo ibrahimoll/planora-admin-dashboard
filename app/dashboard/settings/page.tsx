@@ -3,8 +3,8 @@
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
-import { API_BASE_URL, api } from "@/lib/api";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
+import { API_BASE_URL, api } from "@/lib/api";
 import type {
   AdminDeviceToken,
   AdminNotificationPreference,
@@ -403,7 +403,9 @@ export default function AdminSettingsPage() {
     }
 
     if (!/[A-Z]/.test(newPassword)) {
-      setPasswordError("New password must contain at least one uppercase letter.");
+      setPasswordError(
+        "New password must contain at least one uppercase letter.",
+      );
       return;
     }
 
@@ -788,8 +790,9 @@ function PushNotificationSection() {
     "This is a test push from the admin dashboard.",
   );
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testResult, setTestResult] =
-    useState<AdminPushTestResponse | null>(null);
+  const [testResult, setTestResult] = useState<AdminPushTestResponse | null>(
+    null,
+  );
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -949,8 +952,8 @@ function PushNotificationSection() {
             Firebase status and delivery preferences
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Manage push delivery settings and saved device tokens for this
-            admin account.
+            Manage push delivery settings and saved device tokens for this admin
+            account.
           </p>
         </div>
 
@@ -1263,8 +1266,12 @@ function PushNotificationSection() {
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                          <span>Created {formatDateTime(token.created_at)}</span>
-                          <span>Last used {formatDateTime(token.last_used_at)}</span>
+                          <span>
+                            Created {formatDateTime(token.created_at)}
+                          </span>
+                          <span>
+                            Last used {formatDateTime(token.last_used_at)}
+                          </span>
                         </div>
                       </div>
 
@@ -1273,7 +1280,9 @@ function PushNotificationSection() {
                         onClick={() =>
                           void handleDeactivateToken(token.device_token_id)
                         }
-                        disabled={!token.is_active || deactivatingTokenId !== null}
+                        disabled={
+                          !token.is_active || deactivatingTokenId !== null
+                        }
                         className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400/40 hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {deactivatingTokenId === token.device_token_id ? (
