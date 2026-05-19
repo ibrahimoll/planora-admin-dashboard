@@ -1,0 +1,42 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="18" fill="#07111F"/>
+  <rect width="64" height="64" rx="18" fill="url(#bgGradient)" opacity="0.35"/>
+
+  <circle cx="54" cy="10" r="12" fill="#67E8F9" opacity="0.14"/>
+  <circle cx="8" cy="58" r="16" fill="#2DD4BF" opacity="0.12"/>
+
+  <path
+    d="M20 48V16H36C43.6 16 48.7 20.5 48.7 27.1C48.7 33.6 43.6 38 36 38H28"
+    stroke="url(#planoraLogoGradient)"
+    stroke-width="5.3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M28 38L36.3 29.7L45.3 34.4"
+    stroke="#E2E8F0"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.9"
+  />
+
+  <circle cx="28" cy="38" r="3.5" fill="#2DD4BF"/>
+  <circle cx="36.3" cy="29.7" r="3.5" fill="#67E8F9"/>
+  <circle cx="45.3" cy="34.4" r="3.5" fill="#14B8A6"/>
+
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#07111F"/>
+    </linearGradient>
+
+    <linearGradient id="planoraLogoGradient" x1="20" y1="16" x2="49" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="0.52" stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -5,8 +5,9 @@ export const metadata: Metadata = {
   title: "Planora Admin",
   description: "Planora admin operations dashboard",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 
@@ -21,5 +22,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-
