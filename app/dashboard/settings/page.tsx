@@ -1,8 +1,6 @@
 "use client";
 
 import { clearAdminToken } from "@/lib/auth";
-import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -226,7 +224,6 @@ export default function AdminSettingsPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeletePassword, setShowDeletePassword] = useState(false);
 
