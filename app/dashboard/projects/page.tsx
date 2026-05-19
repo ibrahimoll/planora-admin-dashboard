@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -609,26 +611,17 @@ export default function AdminProjectsPage() {
               </div>
 
               {loadingProjects ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-56 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/70"
-                    />
-                  ))}
-                </div>
+                <AdminLoadingState
+                  title="Loading projects"
+                  message="Fetching project oversight records."
+                  rows={5}
+                />
               ) : projects.length === 0 ? (
-                <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/35 p-8 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                    <FolderKanban size={24} />
-                  </div>
-                  <h3 className="mt-4 text-xl font-bold text-white">
-                    No projects matched
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                    Adjust the search or filters to show more projects.
-                  </p>
-                </div>
+                <AdminEmptyState
+                  icon={FolderKanban}
+                  title="No projects found"
+                  message="Projects matching your filters will appear here."
+                />
               ) : (
                 <div className="space-y-5">
                   {groupedProjects.map((group) => (
@@ -828,13 +821,12 @@ export default function AdminProjectsPage() {
             </div>
 
             {loadingDetail ? (
-              <div className="mt-6 space-y-3">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
-                  />
-                ))}
+              <div className="mt-6">
+                <AdminLoadingState
+                  title="Loading project detail"
+                  message="Fetching selected project summary."
+                  rows={4}
+                />
               </div>
             ) : selectedProject ? (
               <div className="mt-6 space-y-5">
@@ -1003,8 +995,12 @@ export default function AdminProjectsPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/70 p-5 text-sm leading-6 text-slate-400">
-                Select a project to view details.
+              <div className="mt-6">
+                <AdminEmptyState
+                  icon={FolderKanban}
+                  title="No project selected"
+                  message="Select a project to view details."
+                />
               </div>
             )}
           </GlassCard>
