@@ -2,6 +2,7 @@
 
 import { Bell, LogOut, Menu, PanelLeftClose, Search, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { clearAdminToken } from "@/lib/auth";
 
 export default function Topbar({
   onToggleSidebar,
@@ -13,9 +14,7 @@ export default function Topbar({
   const router = useRouter();
 
   function handleLogout() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin_token");
+    clearAdminToken();
     router.push("/login");
   }
 

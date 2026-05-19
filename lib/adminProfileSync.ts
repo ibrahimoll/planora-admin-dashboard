@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "@/lib/api";
+
 export type AdminUser = {
   user_id?: number;
   username?: string;
@@ -75,15 +77,6 @@ export function getAdminInitials(adminUser: AdminUser | null) {
   return source.slice(0, 2).toUpperCase() || "A";
 }
 
-export function getApiBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "http://192.168.0.110:8000"
-  );
-}
-
 export function buildProfileImageUrl(profilePic?: string | null) {
   if (!profilePic) return null;
 
@@ -96,8 +89,8 @@ export function buildProfileImageUrl(profilePic?: string | null) {
   }
 
   return profilePic.startsWith("/")
-    ? `${getApiBaseUrl()}${profilePic}`
-    : `${getApiBaseUrl()}/${profilePic}`;
+    ? `${API_BASE_URL}${profilePic}`
+    : `${API_BASE_URL}/${profilePic}`;
 }
 
 export function fileToDataUrl(file: File): Promise<string> {

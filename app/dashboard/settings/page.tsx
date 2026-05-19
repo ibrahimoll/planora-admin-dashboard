@@ -3,7 +3,7 @@
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
-import { api } from "@/lib/api";
+import { API_BASE_URL, api } from "@/lib/api";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
 import type {
   AdminDeviceToken,
@@ -34,12 +34,6 @@ import {
 } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://192.168.0.110:8000";
 
 type AdminProfile = {
   user_id: number;
