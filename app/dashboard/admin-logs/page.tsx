@@ -400,8 +400,8 @@ export default function AdminLogsPage() {
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="flex items-center gap-3 text-slate-300">
-                  <Loader2 size={20} className="animate-spin text-teal-300" />
-                  Loading admin logs...
+                  <Loader2 size={18} className="animate-spin text-teal-300" />
+                  Loading profile settings... Loading admin logs...
                 </div>
               </div>
             ) : logs.length === 0 ? (

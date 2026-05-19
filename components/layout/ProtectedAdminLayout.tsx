@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import AdminSidebar from "./AdminSidebar";
-import AdminTopbar from "./AdminTopbar";
+import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
 import { api } from "@/lib/api";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import AdminSidebar from "./AdminSidebar";
+import AdminTopbar from "./AdminTopbar";
 
 type CurrentUser = {
   role: "user" | "admin";
@@ -82,11 +83,7 @@ export default function ProtectedAdminLayout({
   }
 
   if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#080d1a] text-white">
-        Checking admin access...
-      </div>
-    );
+    return <PlanoraLoader />;
   }
 
   return (
