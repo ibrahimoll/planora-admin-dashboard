@@ -165,18 +165,5 @@ function SidebarContent({
 }
 
 function LogoBlock() {
-  return (
-    <Link href="/dashboard" className="flex items-center gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#082d36]">
-        <PlanoraLogo className="h-7 w-7" />
-      </div>
-
-      <div>
-        <p className="text-xl font-black leading-none text-white">Planora</p>
-        <p className="mt-2 text-sm font-semibold text-[#93b8e8]">
-          Admin dashboard
-        </p>
-      </div>
-    </Link>
-  );
+  return <PlanoraLogo />;
 }

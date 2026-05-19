@@ -90,22 +90,24 @@ export default function ProtectedAdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white">
-      <div className="flex min-h-screen">
+    <div className="h-screen overflow-hidden bg-[#080d1a] text-white">
+      <div className="flex h-full min-h-0">
         <AdminSidebar
           desktopOpen={desktopSidebarOpen}
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <AdminTopbar
             sidebarOpen={desktopSidebarOpen}
             onToggleSidebar={toggleSidebar}
           />
 
-          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
-            {children}
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="dashboard-scale px-4 py-5 sm:px-6 lg:px-8">
+              {children}
+            </div>
           </main>
         </div>
       </div>

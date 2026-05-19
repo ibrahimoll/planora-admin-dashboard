@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   CheckSquare,
   FolderKanban,
   Grid2X2,
+  ScrollText,
   Settings,
   Users,
   X,
@@ -52,6 +54,16 @@ const navItems = [
     icon: BarChart3,
   },
   {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+  },
+  {
+    label: "Admin Logs",
+    href: "/dashboard/admin-logs",
+    icon: ScrollText,
+  },
+  {
     label: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
@@ -70,7 +82,7 @@ export default function AdminSidebar({
       <aside
         className={[
           desktopOpen ? "hidden lg:flex" : "hidden",
-          "sticky top-0 z-50 h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
+          "z-50 h-screen w-[300px] shrink-0 flex-col border-r border-[#1d2942] bg-[#0d1424]",
         ].join(" ")}
       >
         <SidebarContent pathname={pathname} />

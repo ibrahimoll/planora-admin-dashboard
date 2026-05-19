@@ -317,3 +317,128 @@ export type AdminProjectReportResponse = {
   members: AdminReportMemberItem[];
   tasks: AdminReportTaskItem[];
 };
+
+export type AdminLog = {
+  log_id: number;
+  admin_id: number;
+  target_user_id: number | null;
+  action: string;
+  created_at: string;
+};
+
+export type AdminNotificationType =
+  | "task"
+  | "project"
+  | "team"
+  | "comment"
+  | "mention"
+  | "invite"
+  | "deadline"
+  | "ai"
+  | "risk"
+  | "system";
+
+export type AdminNotification = {
+  notification_id: number;
+  user_id: number;
+  title: string;
+  message: string;
+  is_read: boolean;
+  type: AdminNotificationType;
+  created_at: string;
+};
+
+export type AdminNotificationUnreadCount = {
+  unread_count: number;
+};
+
+export type AdminNotificationMessageResponse = {
+  message: string;
+};
+
+export type FirebasePushStatus = {
+  firebase_enabled: boolean;
+  firebase_configured: boolean;
+  message: string;
+};
+
+export type AdminNotificationPreference = {
+  preference_id: number;
+  user_id: number;
+  task_notifications: boolean;
+  project_notifications: boolean;
+  team_notifications: boolean;
+  comment_notifications: boolean;
+  mention_notifications: boolean;
+  invite_notifications: boolean;
+  deadline_notifications: boolean;
+  ai_notifications: boolean;
+  risk_notifications: boolean;
+  system_notifications: boolean;
+  push_enabled: boolean;
+  email_enabled: boolean;
+  updated_at: string;
+  created_at: string;
+};
+
+export type AdminNotificationPreferenceKey =
+  | "task_notifications"
+  | "project_notifications"
+  | "team_notifications"
+  | "comment_notifications"
+  | "mention_notifications"
+  | "invite_notifications"
+  | "deadline_notifications"
+  | "ai_notifications"
+  | "risk_notifications"
+  | "system_notifications"
+  | "push_enabled"
+  | "email_enabled";
+
+export type AdminDeviceToken = {
+  device_token_id: number;
+  user_id: number;
+  token: string;
+  platform: "android" | "ios" | "web";
+  is_active: boolean;
+  last_used_at: string;
+  created_at: string;
+};
+
+export type AdminSystemSummaryReport = {
+  users_total: number;
+  users_active: number;
+  users_inactive: number;
+  admins_total: number;
+  projects_total: number;
+  team_projects: number;
+  personal_projects: number;
+  tasks_total: number;
+  overdue_tasks: number;
+  blocked_tasks: number;
+  high_risk_records: number;
+  teams_total: number;
+  generated_at: string;
+};
+
+export type AdminProjectsSummaryReport = {
+  projects_total: number;
+  not_started: number;
+  in_progress: number;
+  completed: number;
+  on_hold: number;
+  cancelled: number;
+  average_completion_percentage: number;
+  generated_at: string;
+};
+
+export type AdminUsersSummaryReport = {
+  users_total: number;
+  active_users: number;
+  inactive_users: number;
+  verified_users: number;
+  unverified_users: number;
+  admin_users: number;
+  users_with_assigned_tasks: number;
+  generated_at: string;
+};

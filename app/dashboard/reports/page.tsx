@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
@@ -8,11 +8,16 @@ import { api } from "@/lib/api";
 import type {
   AdminProjectReportResponse,
   AdminProjectSummary,
+  AdminProjectsSummaryReport,
+  AdminSystemSummaryReport,
+  AdminUsersSummaryReport,
 } from "@/types/admin";
 import {
   Activity,
   AlertTriangle,
+  BarChart3,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   FileText,
   FolderKanban,
@@ -20,9 +25,12 @@ import {
   Loader2,
   Printer,
   RefreshCw,
+  Search,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+type ReportTab = "system" | "projects" | "users" | "project";
 
 type ApiError = {
   response?: {
@@ -31,6 +39,17 @@ type ApiError = {
     };
   };
 };
+
+const reportTabs: Array<{
+  label: string;
+  value: ReportTab;
+  icon: typeof BarChart3;
+}> = [
+  { label: "System Summary", value: "system", icon: Activity },
+  { label: "Projects Summary", value: "projects", icon: FolderKanban },
+  { label: "Users Summary", value: "users", icon: Users },
+  { label: "Project Report", value: "project", icon: FileText },
+];
 
 function getApiErrorMessage(error: unknown, fallback: string) {
   const detail = (error as ApiError).response?.data?.detail;
@@ -76,6 +95,10 @@ function formatNumber(value: number | null | undefined) {
   return (value ?? 0).toLocaleString();
 }
 
+function formatPercent(value: number | null | undefined) {
+  return `${Math.round(Number(value ?? 0))}%`;
+}
+
 function formatHours(value: number | null | undefined) {
   return `${Number(value ?? 0).toFixed(1)}h`;
 }
@@ -93,15 +116,53 @@ function StatusBadge({ value }: { value: string }) {
   );
 }
 
+function ReportMetricRow({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "slate" | "teal" | "emerald" | "amber" | "rose" | "violet";
+}) {
+  const toneClass = {
+    slate: "text-white",
+    teal: "text-teal-200",
+    emerald: "text-emerald-200",
+    amber: "text-amber-200",
+    rose: "text-rose-200",
+    violet: "text-violet-200",
+  }[tone];
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3 text-sm">
+      <span className="text-slate-300">{label}</span>
+      <span className={`font-semibold ${toneClass}`}>{value}</span>
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
+  const [activeTab, setActiveTab] = useState<ReportTab>("system");
+
+  const [systemSummary, setSystemSummary] =
+    useState<AdminSystemSummaryReport | null>(null);
+  const [projectsSummary, setProjectsSummary] =
+    useState<AdminProjectsSummaryReport | null>(null);
+  const [usersSummary, setUsersSummary] =
+    useState<AdminUsersSummaryReport | null>(null);
+
   const [projects, setProjects] = useState<AdminProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
     null,
   );
-  const [report, setReport] = useState<AdminProjectReportResponse | null>(null);
+  const [projectReport, setProjectReport] =
+    useState<AdminProjectReportResponse | null>(null);
   const [search, setSearch] = useState("");
+
+  const [loadingSummaries, setLoadingSummaries] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(true);
-  const [loadingReport, setLoadingReport] = useState(false);
+  const [loadingProjectReport, setLoadingProjectReport] = useState(false);
   const [error, setError] = useState("");
 
   const filteredProjects = useMemo(() => {
@@ -121,10 +182,39 @@ export default function AdminReportsPage() {
   }, [projects, search]);
 
   const progressPercent = clampPercent(
-    report?.progress.completion_percentage ?? 0,
+    projectReport?.progress.completion_percentage ?? 0,
   );
 
-  async function fetchProjects() {
+  const loadAdminSummaries = useCallback(async () => {
+    setLoadingSummaries(true);
+    setError("");
+
+    try {
+      const [systemResponse, projectsResponse, usersResponse] =
+        await Promise.all([
+          api.get<AdminSystemSummaryReport>("/admin/reports/system-summary"),
+          api.get<AdminProjectsSummaryReport>(
+            "/admin/reports/projects-summary",
+          ),
+          api.get<AdminUsersSummaryReport>("/admin/reports/users-summary"),
+        ]);
+
+      setSystemSummary(systemResponse.data);
+      setProjectsSummary(projectsResponse.data);
+      setUsersSummary(usersResponse.data);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to load admin summary reports.",
+        ),
+      );
+    } finally {
+      setLoadingSummaries(false);
+    }
+  }, []);
+
+  const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
     setError("");
 
@@ -153,10 +243,10 @@ export default function AdminReportsPage() {
     } finally {
       setLoadingProjects(false);
     }
-  }
+  }, []);
 
-  async function fetchReport(projectId: number) {
-    setLoadingReport(true);
+  const loadProjectReport = useCallback(async (projectId: number) => {
+    setLoadingProjectReport(true);
     setError("");
 
     try {
@@ -164,9 +254,9 @@ export default function AdminReportsPage() {
         `/reports/projects/${projectId}`,
       );
 
-      setReport(response.data);
+      setProjectReport(response.data);
     } catch (requestError) {
-      setReport(null);
+      setProjectReport(null);
       setError(
         getApiErrorMessage(
           requestError,
@@ -174,12 +264,31 @@ export default function AdminReportsPage() {
         ),
       );
     } finally {
-      setLoadingReport(false);
+      setLoadingProjectReport(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadAdminSummaries();
+      void loadProjects();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadAdminSummaries, loadProjects]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (selectedProjectId) {
+        void loadProjectReport(selectedProjectId);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadProjectReport, selectedProjectId]);
 
   function handlePrintReport() {
-    if (!report) {
+    if (!projectReport) {
       setError("Generate a project report before exporting.");
       return;
     }
@@ -187,46 +296,20 @@ export default function AdminReportsPage() {
     window.print();
   }
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  function refreshReports() {
+    void loadAdminSummaries();
+    void loadProjects();
 
-  useEffect(() => {
     if (selectedProjectId) {
-      fetchReport(selectedProjectId);
+      void loadProjectReport(selectedProjectId);
     }
-  }, [selectedProjectId]);
+  }
 
   return (
-    <PageTransition>
+    <PageTransition className="space-y-6 pb-10">
       <style>{`
         @page {
           margin: 16mm;
-        }
-
-        .custom-report-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: #14b8a6 #0f172a;
-        }
-
-        .custom-report-scroll::-webkit-scrollbar {
-          width: 10px;
-          height: 10px;
-        }
-
-        .custom-report-scroll::-webkit-scrollbar-track {
-          background: #0f172a;
-          border-radius: 999px;
-        }
-
-        .custom-report-scroll::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #14b8a6, #0f766e);
-          border-radius: 999px;
-          border: 2px solid #0f172a;
-        }
-
-        .custom-report-scroll::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #2dd4bf, #0d9488);
         }
 
         .report-select {
@@ -240,13 +323,6 @@ export default function AdminReportsPage() {
           color: #f8fafc;
         }
 
-        .report-select option:checked,
-        .report-select option:hover,
-        .report-select option:focus {
-          background-color: #0f172a;
-          color: #ffffff;
-        }
-
         @media print {
           body {
             background: white !important;
@@ -254,20 +330,12 @@ export default function AdminReportsPage() {
 
           aside,
           nav,
+          header,
           .print-hide {
             display: none !important;
           }
 
           main {
-            padding: 0 !important;
-          }
-
-          .report-equal-card {
-            height: auto !important;
-          }
-
-          .custom-report-scroll {
-            max-height: none !important;
             overflow: visible !important;
           }
 
@@ -288,437 +356,800 @@ export default function AdminReportsPage() {
           .print-report [class*="bg-"] {
             background: white !important;
           }
-
-          .print-report [class*="rounded"] {
-            break-inside: avoid;
-          }
         }
       `}</style>
 
-      <div className="print-report space-y-8">
-        <Reveal>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-300">
-                Reports
-              </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
-                Project reports
-              </h1>
-              <p className="mt-3 max-w-3xl text-slate-400">
-                Generate admin-level project reports with progress, workload,
-                activity, members, task counts, and task details.
-              </p>
-            </div>
-
-            <div className="print-hide flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handlePrintReport}
-                disabled={!report || loadingReport}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/25 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:border-teal-400/40 hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Printer size={16} />
-                Export / Print
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  fetchProjects();
-                  if (selectedProjectId) fetchReport(selectedProjectId);
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
-              >
-                <RefreshCw size={16} />
-                Refresh
-              </button>
-            </div>
-          </div>
-        </Reveal>
-
-        {error && (
-          <Reveal>
-            <div className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              {error}
-            </div>
-          </Reveal>
-        )}
-
-        <div className="print-hide">
-          <Reveal>
-            <GlassCard>
-              <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-                <div>
-                  <label className="text-sm font-medium text-slate-300">
-                    Search projects
-                  </label>
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search by title, owner, type, or status..."
-                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-slate-300">
-                    Select project
-                  </label>
-                  <div className="mt-2">
-                    <select
-                      value={selectedProjectId ?? ""}
-                      onChange={(event) =>
-                        setSelectedProjectId(Number(event.target.value))
-                      }
-                      disabled={
-                        loadingProjects || filteredProjects.length === 0
-                      }
-                      className="report-select w-full rounded-xl border border-teal-500/70 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-teal-400"
-                    >
-                      {filteredProjects.map((project) => (
-                        <option
-                          key={project.project_id}
-                          value={project.project_id}
-                          className="bg-slate-950 text-white"
-                        >
-                          {project.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {loadingProjects && (
-                <div className="mt-5 flex items-center gap-2 text-sm text-slate-400">
-                  <Loader2 size={16} className="animate-spin" />
-                  Loading projects...
-                </div>
-              )}
-
-              {!loadingProjects && projects.length === 0 && (
-                <p className="mt-5 text-sm text-slate-400">
-                  No projects found yet.
-                </p>
-              )}
-            </GlassCard>
-          </Reveal>
+      <div className="print-hide flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-300">
+            Reports
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
+            Admin Reports Center
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+            Review backend-generated system, project, user, and project-level
+            reports without mock metrics.
+          </p>
         </div>
 
-        {loadingReport && (
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={refreshReports}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={!projectReport || loadingProjectReport}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/25 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-teal-100 transition hover:border-teal-400/40 hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Printer size={16} />
+            Export / Print
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="print-hide rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          {error}
+        </div>
+      )}
+
+      <Reveal className="print-hide">
+        <GlassCard className="p-3">
+          <div className="grid gap-2 md:grid-cols-4">
+            {reportTabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.value;
+
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`flex h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition ${
+                    active
+                      ? "border-teal-500/40 bg-teal-500/10 text-teal-100"
+                      : "border-transparent text-slate-300 hover:border-slate-700 hover:bg-slate-950/45 hover:text-white"
+                  }`}
+                >
+                  <Icon size={17} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </GlassCard>
+      </Reveal>
+
+      {activeTab === "system" && (
+        <SystemSummaryTab
+          summary={systemSummary}
+          loading={loadingSummaries}
+        />
+      )}
+
+      {activeTab === "projects" && (
+        <ProjectsSummaryTab
+          summary={projectsSummary}
+          loading={loadingSummaries}
+        />
+      )}
+
+      {activeTab === "users" && (
+        <UsersSummaryTab summary={usersSummary} loading={loadingSummaries} />
+      )}
+
+      {activeTab === "project" && (
+        <ProjectReportTab
+          projects={filteredProjects}
+          selectedProjectId={selectedProjectId}
+          onSelectedProjectIdChange={(projectId) =>
+            setSelectedProjectId(projectId)
+          }
+          search={search}
+          onSearchChange={setSearch}
+          report={projectReport}
+          loadingProjects={loadingProjects}
+          loadingReport={loadingProjectReport}
+          progressPercent={progressPercent}
+        />
+      )}
+    </PageTransition>
+  );
+}
+
+function SystemSummaryTab({
+  summary,
+  loading,
+}: {
+  summary: AdminSystemSummaryReport | null;
+  loading: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Users"
+          value={loading ? "--" : formatNumber(summary?.users_total)}
+          detail={`${formatNumber(summary?.users_active)} active`}
+          icon={Users}
+          accent="cyan"
+        />
+        <StatCard
+          title="Projects"
+          value={loading ? "--" : formatNumber(summary?.projects_total)}
+          detail={`${formatNumber(summary?.team_projects)} team projects`}
+          icon={FolderKanban}
+          accent="cyan"
+        />
+        <StatCard
+          title="Tasks"
+          value={loading ? "--" : formatNumber(summary?.tasks_total)}
+          detail={`${formatNumber(summary?.blocked_tasks)} blocked`}
+          icon={ListChecks}
+          accent="emerald"
+        />
+        <StatCard
+          title="High risk"
+          value={loading ? "--" : formatNumber(summary?.high_risk_records)}
+          detail={`${formatNumber(summary?.overdue_tasks)} overdue tasks`}
+          icon={AlertTriangle}
+          accent={(summary?.high_risk_records ?? 0) > 0 ? "rose" : "emerald"}
+        />
+      </section>
+
+      <Reveal>
+        <GlassCard>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                System summary
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                Backend report snapshot
+              </h2>
+            </div>
+            <span className="rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs font-semibold text-slate-300">
+              {loading ? "Loading" : formatDateTime(summary?.generated_at)}
+            </span>
+          </div>
+
+          {loading ? (
+            <LoadingBlock label="Loading system summary..." />
+          ) : (
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <ReportMetricRow
+                label="Inactive users"
+                value={formatNumber(summary?.users_inactive)}
+                tone="amber"
+              />
+              <ReportMetricRow
+                label="Admins total"
+                value={formatNumber(summary?.admins_total)}
+                tone="violet"
+              />
+              <ReportMetricRow
+                label="Personal projects"
+                value={formatNumber(summary?.personal_projects)}
+                tone="teal"
+              />
+              <ReportMetricRow
+                label="Teams total"
+                value={formatNumber(summary?.teams_total)}
+                tone="emerald"
+              />
+              <ReportMetricRow
+                label="Overdue tasks"
+                value={formatNumber(summary?.overdue_tasks)}
+                tone="amber"
+              />
+              <ReportMetricRow
+                label="Blocked tasks"
+                value={formatNumber(summary?.blocked_tasks)}
+                tone="rose"
+              />
+            </div>
+          )}
+        </GlassCard>
+      </Reveal>
+    </div>
+  );
+}
+
+function ProjectsSummaryTab({
+  summary,
+  loading,
+}: {
+  summary: AdminProjectsSummaryReport | null;
+  loading: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Projects"
+          value={loading ? "--" : formatNumber(summary?.projects_total)}
+          detail="All backend projects"
+          icon={FolderKanban}
+          accent="cyan"
+        />
+        <StatCard
+          title="Average complete"
+          value={loading ? "--" : formatPercent(summary?.average_completion_percentage)}
+          detail="Backend average"
+          icon={BarChart3}
+          accent="emerald"
+        />
+        <StatCard
+          title="In progress"
+          value={loading ? "--" : formatNumber(summary?.in_progress)}
+          detail="Active delivery"
+          icon={Clock3}
+          accent="cyan"
+        />
+        <StatCard
+          title="Completed"
+          value={loading ? "--" : formatNumber(summary?.completed)}
+          detail="Finished projects"
+          icon={CheckCircle2}
+          accent="emerald"
+        />
+      </section>
+
+      <Reveal>
+        <GlassCard>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                Projects summary
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                Project status breakdown
+              </h2>
+            </div>
+            <span className="rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs font-semibold text-slate-300">
+              {loading ? "Loading" : formatDateTime(summary?.generated_at)}
+            </span>
+          </div>
+
+          {loading ? (
+            <LoadingBlock label="Loading projects summary..." />
+          ) : (
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <ReportMetricRow
+                label="Not started"
+                value={formatNumber(summary?.not_started)}
+              />
+              <ReportMetricRow
+                label="In progress"
+                value={formatNumber(summary?.in_progress)}
+                tone="teal"
+              />
+              <ReportMetricRow
+                label="Completed"
+                value={formatNumber(summary?.completed)}
+                tone="emerald"
+              />
+              <ReportMetricRow
+                label="On hold"
+                value={formatNumber(summary?.on_hold)}
+                tone="amber"
+              />
+              <ReportMetricRow
+                label="Cancelled"
+                value={formatNumber(summary?.cancelled)}
+                tone="rose"
+              />
+              <ReportMetricRow
+                label="Average completion"
+                value={formatPercent(summary?.average_completion_percentage)}
+                tone="teal"
+              />
+            </div>
+          )}
+        </GlassCard>
+      </Reveal>
+    </div>
+  );
+}
+
+function UsersSummaryTab({
+  summary,
+  loading,
+}: {
+  summary: AdminUsersSummaryReport | null;
+  loading: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Users"
+          value={loading ? "--" : formatNumber(summary?.users_total)}
+          detail={`${formatNumber(summary?.active_users)} active`}
+          icon={Users}
+          accent="cyan"
+        />
+        <StatCard
+          title="Verified"
+          value={loading ? "--" : formatNumber(summary?.verified_users)}
+          detail={`${formatNumber(summary?.unverified_users)} unverified`}
+          icon={CheckCircle2}
+          accent="emerald"
+        />
+        <StatCard
+          title="Admins"
+          value={loading ? "--" : formatNumber(summary?.admin_users)}
+          detail="Global admin role"
+          icon={Activity}
+          accent="purple"
+        />
+        <StatCard
+          title="Assigned work"
+          value={
+            loading ? "--" : formatNumber(summary?.users_with_assigned_tasks)
+          }
+          detail="Users with tasks"
+          icon={ListChecks}
+          accent="cyan"
+        />
+      </section>
+
+      <Reveal>
+        <GlassCard>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+                Users summary
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                Account status breakdown
+              </h2>
+            </div>
+            <span className="rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs font-semibold text-slate-300">
+              {loading ? "Loading" : formatDateTime(summary?.generated_at)}
+            </span>
+          </div>
+
+          {loading ? (
+            <LoadingBlock label="Loading users summary..." />
+          ) : (
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <ReportMetricRow
+                label="Active users"
+                value={formatNumber(summary?.active_users)}
+                tone="emerald"
+              />
+              <ReportMetricRow
+                label="Inactive users"
+                value={formatNumber(summary?.inactive_users)}
+                tone="amber"
+              />
+              <ReportMetricRow
+                label="Verified users"
+                value={formatNumber(summary?.verified_users)}
+                tone="teal"
+              />
+              <ReportMetricRow
+                label="Unverified users"
+                value={formatNumber(summary?.unverified_users)}
+                tone="amber"
+              />
+              <ReportMetricRow
+                label="Admin users"
+                value={formatNumber(summary?.admin_users)}
+                tone="violet"
+              />
+              <ReportMetricRow
+                label="Users with assigned tasks"
+                value={formatNumber(summary?.users_with_assigned_tasks)}
+                tone="teal"
+              />
+            </div>
+          )}
+        </GlassCard>
+      </Reveal>
+    </div>
+  );
+}
+
+function ProjectReportTab({
+  projects,
+  selectedProjectId,
+  onSelectedProjectIdChange,
+  search,
+  onSearchChange,
+  report,
+  loadingProjects,
+  loadingReport,
+  progressPercent,
+}: {
+  projects: AdminProjectSummary[];
+  selectedProjectId: number | null;
+  onSelectedProjectIdChange: (projectId: number) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  report: AdminProjectReportResponse | null;
+  loadingProjects: boolean;
+  loadingReport: boolean;
+  progressPercent: number;
+}) {
+  return (
+    <div className="print-report space-y-6">
+      <div className="print-hide">
+        <Reveal>
+          <GlassCard>
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+              <label>
+                <span className="text-sm font-medium text-slate-300">
+                  Search projects
+                </span>
+                <div className="relative mt-2">
+                  <Search
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                  <input
+                    value={search}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    placeholder="Search by title, owner, type, or status..."
+                    className="h-11 w-full rounded-xl border border-slate-800 bg-slate-950/45 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-teal-500"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span className="text-sm font-medium text-slate-300">
+                  Select project
+                </span>
+                <select
+                  value={selectedProjectId ?? ""}
+                  onChange={(event) =>
+                    onSelectedProjectIdChange(Number(event.target.value))
+                  }
+                  disabled={loadingProjects || projects.length === 0}
+                  className="report-select mt-2 h-11 w-full rounded-xl border border-teal-500/70 bg-slate-950 px-4 text-sm text-white outline-none transition focus:border-teal-400"
+                >
+                  {projects.map((project) => (
+                    <option
+                      key={project.project_id}
+                      value={project.project_id}
+                      className="bg-slate-950 text-white"
+                    >
+                      {project.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {loadingProjects && (
+              <div className="mt-5 flex items-center gap-2 text-sm text-slate-400">
+                <Loader2 size={16} className="animate-spin" />
+                Loading projects...
+              </div>
+            )}
+
+            {!loadingProjects && projects.length === 0 && (
+              <p className="mt-5 text-sm text-slate-400">
+                No projects found yet.
+              </p>
+            )}
+          </GlassCard>
+        </Reveal>
+      </div>
+
+      {loadingReport && (
+        <Reveal>
+          <GlassCard>
+            <div className="flex items-center gap-3 text-slate-300">
+              <Loader2 size={18} className="animate-spin text-teal-300" />
+              Generating project report...
+            </div>
+          </GlassCard>
+        </Reveal>
+      )}
+
+      {report && !loadingReport && (
+        <>
           <Reveal>
-            <GlassCard>
-              <div className="flex items-center gap-3 text-slate-300">
-                <Loader2 size={18} className="animate-spin text-teal-300" />
-                Generating report...
+            <GlassCard glow="cyan">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-bold text-white">
+                      {report.project.title}
+                    </h2>
+                    <StatusBadge value={report.project.status} />
+                  </div>
+
+                  <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+                    {report.project.description || "No description provided."}
+                  </p>
+
+                  <div className="mt-5 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
+                    <div>
+                      <p className="text-slate-500">Type</p>
+                      <p className="mt-1 font-semibold capitalize text-white">
+                        {report.project.project_type}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Deadline</p>
+                      <p className="mt-1 font-semibold text-white">
+                        {formatDate(report.project.deadline)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Generated</p>
+                      <p className="mt-1 font-semibold text-white">
+                        {formatDateTime(report.generated_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-teal-500/20 bg-teal-500/10 p-5 text-center">
+                  <p className="text-sm font-semibold text-teal-100">
+                    Completion
+                  </p>
+                  <p className="mt-2 text-4xl font-bold text-white">
+                    {progressPercent}%
+                  </p>
+                  <div className="mt-4 h-2 w-48 overflow-hidden rounded-full bg-slate-900">
+                    <div
+                      className="h-full rounded-full bg-teal-400"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             </GlassCard>
           </Reveal>
-        )}
 
-        {report && !loadingReport && (
-          <>
+          <Reveal>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                title="Total tasks"
+                value={formatNumber(report.progress.total_tasks)}
+                detail={`${formatNumber(
+                  report.progress.completed_tasks,
+                )} completed`}
+                icon={ListChecks}
+                accent="cyan"
+              />
+
+              <StatCard
+                title="Pending"
+                value={formatNumber(report.progress.pending_tasks)}
+                detail={`${formatNumber(
+                  report.progress.overdue_tasks,
+                )} overdue`}
+                icon={Clock3}
+                accent={report.progress.overdue_tasks > 0 ? "rose" : "amber"}
+              />
+
+              <StatCard
+                title="Members"
+                value={formatNumber(report.members.length)}
+                detail="Project participants"
+                icon={Users}
+                accent="purple"
+              />
+
+              <StatCard
+                title="Activity"
+                value={formatNumber(
+                  report.activity.comments_count +
+                    report.activity.attachments_count,
+                )}
+                detail="Comments and attachments"
+                icon={Activity}
+                accent="emerald"
+              />
+            </div>
+          </Reveal>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <ReportDetailList
+              title="Task status"
+              icon={FolderKanban}
+              items={Object.entries(report.task_status_counts).map(
+                ([label, value]) => ({
+                  label: formatStatus(label),
+                  value: formatNumber(value),
+                }),
+              )}
+            />
+            <ReportDetailList
+              title="Priority counts"
+              icon={AlertTriangle}
+              items={Object.entries(report.task_priority_counts).map(
+                ([label, value]) => ({
+                  label,
+                  value: formatNumber(value),
+                }),
+              )}
+            />
+            <ReportDetailList
+              title="Hours and activity"
+              icon={CalendarDays}
+              items={[
+                {
+                  label: "Estimated hours",
+                  value: formatHours(report.hours.estimated_hours_total),
+                },
+                {
+                  label: "Actual hours",
+                  value: formatHours(report.hours.actual_hours_total),
+                },
+                {
+                  label: "Reminders",
+                  value: formatNumber(
+                    report.activity.deadline_reminders_count,
+                  ),
+                },
+              ]}
+            />
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.55fr)_minmax(0,1.45fr)]">
             <Reveal>
-              <GlassCard glow="cyan">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-2xl font-bold text-white">
-                        {report.project.title}
-                      </h2>
-                      <StatusBadge value={report.project.status} />
-                    </div>
+              <GlassCard>
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+                  <Users size={18} className="text-violet-300" />
+                  Members
+                </h3>
 
-                    <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-                      {report.project.description || "No description provided."}
+                <div className="mt-5 space-y-3">
+                  {report.members.length === 0 ? (
+                    <p className="text-sm text-slate-400">
+                      No members found for this project.
                     </p>
-
-                    <div className="mt-5 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
-                      <div>
-                        <p className="text-slate-500">Type</p>
-                        <p className="mt-1 font-semibold capitalize text-white">
-                          {report.project.project_type}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-slate-500">Deadline</p>
-                        <p className="mt-1 font-semibold text-white">
-                          {formatDate(report.project.deadline)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-slate-500">Generated</p>
-                        <p className="mt-1 font-semibold text-white">
-                          {formatDateTime(report.generated_at)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-teal-500/20 bg-teal-500/10 p-5 text-center">
-                    <p className="text-sm font-semibold text-teal-100">
-                      Completion
-                    </p>
-                    <p className="mt-2 text-4xl font-bold text-white">
-                      {progressPercent}%
-                    </p>
-                    <div className="mt-4 h-2 w-48 overflow-hidden rounded-full bg-slate-900">
+                  ) : (
+                    report.members.map((member) => (
                       <div
-                        className="h-full rounded-full bg-teal-400"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
+                        key={member.user_id}
+                        className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
+                      >
+                        <p className="font-semibold text-white">
+                          {member.full_name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-400">
+                          {member.email}
+                        </p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-teal-300">
+                          {member.role}
+                        </p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </GlassCard>
             </Reveal>
 
             <Reveal>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <StatCard
-                  title="Total tasks"
-                  value={formatNumber(report.progress.total_tasks)}
-                  detail={`${formatNumber(
-                    report.progress.completed_tasks,
-                  )} completed`}
-                  icon={ListChecks}
-                  accent="cyan"
-                />
+              <GlassCard>
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+                  <FileText size={18} className="text-teal-300" />
+                  Tasks
+                </h3>
 
-                <StatCard
-                  title="Pending"
-                  value={formatNumber(report.progress.pending_tasks)}
-                  detail={`${formatNumber(
-                    report.progress.overdue_tasks,
-                  )} overdue`}
-                  icon={Clock3}
-                  accent={report.progress.overdue_tasks > 0 ? "rose" : "amber"}
-                />
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800">
+                  <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 bg-slate-950 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <span>Task</span>
+                    <span>Status</span>
+                    <span>Priority</span>
+                    <span className="text-right">Due</span>
+                  </div>
 
-                <StatCard
-                  title="Members"
-                  value={formatNumber(report.members.length)}
-                  detail="Project participants"
-                  icon={Users}
-                  accent="purple"
-                />
+                  {report.tasks.length === 0 ? (
+                    <p className="px-4 py-5 text-sm text-slate-400">
+                      No tasks found for this project.
+                    </p>
+                  ) : (
+                    report.tasks.map((task) => {
+                      const assignee = task.assigned_to
+                        ? report.members.find(
+                            (member) => member.user_id === task.assigned_to,
+                          )
+                        : null;
 
-                <StatCard
-                  title="Activity"
-                  value={formatNumber(
-                    report.activity.comments_count +
-                      report.activity.attachments_count,
+                      return (
+                        <div
+                          key={task.task_id}
+                          className="grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 border-t border-slate-800 px-4 py-4 text-sm transition hover:bg-slate-950/35"
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="truncate font-medium text-white"
+                              title={task.title}
+                            >
+                              {task.title}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              Assigned to:{" "}
+                              {assignee
+                                ? assignee.full_name || assignee.username
+                                : (task.assigned_to ?? "Unassigned")}
+                            </p>
+                          </div>
+
+                          <span className="truncate capitalize text-slate-300">
+                            {formatStatus(task.status)}
+                          </span>
+
+                          <span className="truncate capitalize text-slate-300">
+                            {task.priority}
+                          </span>
+
+                          <span
+                            className="truncate text-right text-slate-300"
+                            title={formatDate(task.due_date)}
+                          >
+                            {formatDateShort(task.due_date)}
+                          </span>
+                        </div>
+                      );
+                    })
                   )}
-                  detail="Comments and attachments"
-                  icon={Activity}
-                  accent="emerald"
-                />
-              </div>
+                </div>
+              </GlassCard>
             </Reveal>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-            <div className="grid gap-6 xl:grid-cols-3">
-              <Reveal>
-                <GlassCard>
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <FolderKanban size={18} className="text-teal-300" />
-                    Task status
-                  </h3>
+function LoadingBlock({ label }: { label: string }) {
+  return (
+    <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-8 text-slate-300">
+      <Loader2 size={20} className="animate-spin text-teal-300" />
+      {label}
+    </div>
+  );
+}
 
-                  <div className="mt-5 space-y-3 text-sm">
-                    {Object.entries(report.task_status_counts).map(
-                      ([label, value]) => (
-                        <div
-                          key={label}
-                          className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3"
-                        >
-                          <span className="capitalize text-slate-300">
-                            {formatStatus(label)}
-                          </span>
-                          <span className="font-semibold text-white">
-                            {formatNumber(value)}
-                          </span>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </GlassCard>
-              </Reveal>
+function ReportDetailList({
+  title,
+  icon: Icon,
+  items,
+}: {
+  title: string;
+  icon: typeof FolderKanban;
+  items: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <Reveal>
+      <GlassCard>
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+          <Icon size={18} className="text-teal-300" />
+          {title}
+        </h3>
 
-              <Reveal>
-                <GlassCard>
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <AlertTriangle size={18} className="text-amber-300" />
-                    Priority counts
-                  </h3>
-
-                  <div className="mt-5 space-y-3 text-sm">
-                    {Object.entries(report.task_priority_counts).map(
-                      ([label, value]) => (
-                        <div
-                          key={label}
-                          className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3"
-                        >
-                          <span className="capitalize text-slate-300">
-                            {label}
-                          </span>
-                          <span className="font-semibold text-white">
-                            {formatNumber(value)}
-                          </span>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </GlassCard>
-              </Reveal>
-
-              <Reveal>
-                <GlassCard>
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <CalendarDays size={18} className="text-emerald-300" />
-                    Hours and activity
-                  </h3>
-
-                  <div className="mt-5 space-y-3 text-sm">
-                    <div className="flex justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3">
-                      <span className="text-slate-300">Estimated hours</span>
-                      <span className="font-semibold text-white">
-                        {formatHours(report.hours.estimated_hours_total)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3">
-                      <span className="text-slate-300">Actual hours</span>
-                      <span className="font-semibold text-white">
-                        {formatHours(report.hours.actual_hours_total)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3">
-                      <span className="text-slate-300">Reminders</span>
-                      <span className="font-semibold text-white">
-                        {formatNumber(report.activity.deadline_reminders_count)}
-                      </span>
-                    </div>
-                  </div>
-                </GlassCard>
-              </Reveal>
+        <div className="mt-5 space-y-3 text-sm">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/35 px-4 py-3"
+            >
+              <span className="capitalize text-slate-300">{item.label}</span>
+              <span className="font-semibold text-white">{item.value}</span>
             </div>
-
-            <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.55fr)_minmax(0,1.45fr)]">
-              <Reveal>
-                <GlassCard className="report-equal-card flex h-[520px] flex-col">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <Users size={18} className="text-violet-300" />
-                    Members
-                  </h3>
-
-                  <div className="custom-report-scroll mt-5 flex-1 space-y-3 overflow-auto pr-2">
-                    {report.members.length === 0 ? (
-                      <p className="text-sm text-slate-400">
-                        No members found for this project.
-                      </p>
-                    ) : (
-                      report.members.map((member) => (
-                        <div
-                          key={member.user_id}
-                          className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
-                        >
-                          <p className="font-semibold text-white">
-                            {member.full_name}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-400">
-                            {member.email}
-                          </p>
-                          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-teal-300">
-                            {member.role}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </GlassCard>
-              </Reveal>
-
-              <Reveal>
-                <GlassCard className="report-equal-card flex h-[520px] flex-col">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <FileText size={18} className="text-teal-300" />
-                    Tasks
-                  </h3>
-
-                  <div className="mt-5 flex-1 overflow-hidden rounded-2xl border border-slate-800">
-                    <div className="custom-report-scroll h-full overflow-y-auto overflow-x-hidden">
-                      <div className="w-full">
-                        <div className="sticky top-0 z-10 grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 bg-slate-950 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                          <span>Task</span>
-                          <span>Status</span>
-                          <span>Priority</span>
-                          <span className="text-right">Due</span>
-                        </div>
-
-                        {report.tasks.length === 0 ? (
-                          <p className="px-4 py-5 text-sm text-slate-400">
-                            No tasks found for this project.
-                          </p>
-                        ) : (
-                          report.tasks.map((task) => {
-                            const assignee = task.assigned_to
-                              ? report.members.find(
-                                  (member) =>
-                                    member.user_id === task.assigned_to,
-                                )
-                              : null;
-
-                            return (
-                              <div
-                                key={task.task_id}
-                                className="grid grid-cols-[minmax(0,1.7fr)_minmax(96px,0.65fr)_minmax(90px,0.6fr)_minmax(92px,0.55fr)] gap-3 border-t border-slate-800 px-4 py-4 text-sm transition hover:bg-slate-950/35"
-                              >
-                                <div className="min-w-0">
-                                  <p
-                                    className="truncate font-medium text-white"
-                                    title={task.title}
-                                  >
-                                    {task.title}
-                                  </p>
-                                  <p className="mt-1 truncate text-xs text-slate-500">
-                                    Assigned to:{" "}
-                                    {assignee
-                                      ? assignee.full_name || assignee.username
-                                      : (task.assigned_to ?? "Unassigned")}
-                                  </p>
-                                </div>
-
-                                <span className="truncate capitalize text-slate-300">
-                                  {formatStatus(task.status)}
-                                </span>
-
-                                <span className="truncate capitalize text-slate-300">
-                                  {task.priority}
-                                </span>
-
-                                <span
-                                  className="truncate text-right text-slate-300"
-                                  title={formatDate(task.due_date)}
-                                >
-                                  {formatDateShort(task.due_date)}
-                                </span>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              </Reveal>
-            </div>
-          </>
-        )}
-      </div>
-    </PageTransition>
+          ))}
+        </div>
+      </GlassCard>
+    </Reveal>
   );
 }

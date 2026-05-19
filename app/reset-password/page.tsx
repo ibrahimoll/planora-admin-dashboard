@@ -76,12 +76,16 @@ export default function ResetPasswordPage() {
   const [resendingCode, setResendingCode] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const emailFromUrl = params.get("email");
+    const timeoutId = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const emailFromUrl = params.get("email");
 
-    if (emailFromUrl) {
-      setEmail(emailFromUrl);
-    }
+      if (emailFromUrl) {
+        setEmail(emailFromUrl);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   async function handleResendCode() {

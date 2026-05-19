@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   Search,
   Settings,
+  ScrollText,
   UserCircle,
   Users,
   X,
@@ -32,20 +33,15 @@ import {
   type AdminUser,
 } from "@/lib/adminProfileSync";
 import { api } from "@/lib/api";
+import {
+  ADMIN_NOTIFICATIONS_UPDATED_EVENT,
+  dispatchAdminNotificationsUpdated,
+} from "@/lib/notificationEvents";
+import type { AdminNotification } from "@/types/admin";
 
 type AdminTopbarProps = {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-};
-
-type AdminNotification = {
-  notification_id: number;
-  user_id?: number;
-  title: string;
-  message: string;
-  is_read: boolean;
-  type: string;
-  created_at: string;
 };
 
 const searchTargets = [
@@ -84,6 +80,18 @@ const searchTargets = [
     href: "/dashboard/reports",
     icon: BarChart3,
     keywords: ["reports", "report", "analytics", "charts"],
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+    keywords: ["notifications", "notification", "alerts", "unread"],
+  },
+  {
+    label: "Admin Logs",
+    href: "/dashboard/admin-logs",
+    icon: ScrollText,
+    keywords: ["logs", "audit", "admin logs", "activity"],
   },
   {
     label: "Settings",
@@ -144,12 +152,6 @@ export default function AdminTopbar({
   }
 
   useEffect(() => {
-    const savedProfile = getSavedAdminProfile();
-
-    if (savedProfile) {
-      setAdminProfile(savedProfile);
-    }
-
     async function syncCurrentAdmin() {
       try {
         const response = await api.get<AdminUser>("/auth/me");
@@ -161,21 +163,38 @@ export default function AdminTopbar({
       }
     }
 
-    syncCurrentAdmin();
-    loadNotifications();
-
     function handleProfileUpdate(event: Event) {
       const customEvent = event as CustomEvent<AdminUser>;
       setAdminProfile(customEvent.detail);
       setProfileImageBroken(false);
     }
 
+    const timeoutId = window.setTimeout(() => {
+      const savedProfile = getSavedAdminProfile();
+
+      if (savedProfile) {
+        setAdminProfile(savedProfile);
+      }
+
+      void syncCurrentAdmin();
+      void loadNotifications();
+    }, 0);
+
     window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, handleProfileUpdate);
+    window.addEventListener(
+      ADMIN_NOTIFICATIONS_UPDATED_EVENT,
+      loadNotifications,
+    );
 
     return () => {
+      window.clearTimeout(timeoutId);
       window.removeEventListener(
         ADMIN_PROFILE_UPDATED_EVENT,
         handleProfileUpdate,
+      );
+      window.removeEventListener(
+        ADMIN_NOTIFICATIONS_UPDATED_EVENT,
+        loadNotifications,
       );
     };
   }, []);
@@ -282,6 +301,7 @@ export default function AdminTopbar({
     try {
       await api.patch("/notifications/read-all");
       await loadNotifications();
+      dispatchAdminNotificationsUpdated();
     } catch {
       setNotifications(previousNotifications);
       setNotificationsError("Could not mark notifications as read.");
@@ -407,18 +427,28 @@ export default function AdminTopbar({
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleMarkAllRead}
-                    disabled={
-                      notificationsLoading ||
-                      notifications.length === 0 ||
-                      unreadCount === 0
-                    }
-                    className="rounded-xl border border-[#1d2942] px-3 py-2 text-xs font-semibold text-[#20d6c7] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Mark all read
-                  </button>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => goToRoute("/dashboard/notifications")}
+                      className="rounded-xl border border-[#1d2942] px-3 py-2 text-xs font-semibold text-[#d8e2f5] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 hover:text-[#20d6c7]"
+                    >
+                      View all
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleMarkAllRead}
+                      disabled={
+                        notificationsLoading ||
+                        notifications.length === 0 ||
+                        unreadCount === 0
+                      }
+                      className="rounded-xl border border-[#1d2942] px-3 py-2 text-xs font-semibold text-[#20d6c7] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
                 </div>
 
                 <div className="max-h-[360px] overflow-y-auto p-3">

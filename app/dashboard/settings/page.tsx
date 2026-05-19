@@ -5,7 +5,14 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
 import { api } from "@/lib/api";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
+import type {
+  AdminDeviceToken,
+  AdminNotificationPreference,
+  AdminNotificationPreferenceKey,
+  FirebasePushStatus,
+} from "@/types/admin";
 import {
+  BellRing,
   Camera,
   CheckCircle2,
   Eye,
@@ -13,14 +20,20 @@ import {
   ImagePlus,
   KeyRound,
   Loader2,
+  Power,
   RefreshCw,
   Save,
+  Server,
   ShieldCheck,
+  Smartphone,
+  ToggleLeft,
+  ToggleRight,
   Trash2,
   Upload,
+  XCircle,
 } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -57,6 +70,73 @@ type ApiError = {
   };
 };
 
+const notificationPreferenceFields: Array<{
+  key: AdminNotificationPreferenceKey;
+  label: string;
+  detail: string;
+}> = [
+  {
+    key: "push_enabled",
+    label: "Push enabled",
+    detail: "Master switch for push delivery.",
+  },
+  {
+    key: "deadline_notifications",
+    label: "Deadline notifications",
+    detail: "Deadline and reminder alerts.",
+  },
+  {
+    key: "risk_notifications",
+    label: "Risk notifications",
+    detail: "High-risk project alerts.",
+  },
+  {
+    key: "task_notifications",
+    label: "Task notifications",
+    detail: "Task changes and assignments.",
+  },
+  {
+    key: "project_notifications",
+    label: "Project notifications",
+    detail: "Project updates.",
+  },
+  {
+    key: "team_notifications",
+    label: "Team notifications",
+    detail: "Team membership and updates.",
+  },
+  {
+    key: "comment_notifications",
+    label: "Comment notifications",
+    detail: "Task and project comments.",
+  },
+  {
+    key: "mention_notifications",
+    label: "Mention notifications",
+    detail: "Direct mentions.",
+  },
+  {
+    key: "invite_notifications",
+    label: "Invite notifications",
+    detail: "Team and project invites.",
+  },
+  {
+    key: "ai_notifications",
+    label: "AI notifications",
+    detail: "AI planning and assistant updates.",
+  },
+  {
+    key: "system_notifications",
+    label: "System notifications",
+    detail: "Planora system notices.",
+  },
+  {
+    key: "email_enabled",
+    label: "Email enabled",
+    detail: "Stored preference for email delivery.",
+  },
+];
+
 function getApiErrorMessage(error: unknown, fallback: string) {
   const detail = (error as ApiError).response?.data?.detail;
   return typeof detail === "string" ? detail : fallback;
@@ -81,6 +161,28 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "Not available";
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function maskToken(value: string) {
+  if (!value) return "Token unavailable";
+
+  if (value.length <= 16) {
+    return `${value.slice(0, 4)}...${value.slice(-4)}`;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-8)}`;
 }
 
 function getProfileImageSrc(
@@ -132,7 +234,9 @@ export default function AdminSettingsPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [profileImageVersion, setProfileImageVersion] = useState(Date.now());
+  const [profileImageVersion, setProfileImageVersion] = useState(() =>
+    Date.now(),
+  );
 
   const initials = useMemo(() => {
     return getInitials(fullName, username);
@@ -152,16 +256,16 @@ export default function AdminSettingsPage() {
     );
   }, [profile, username, fullName]);
 
-  function applyProfileUpdate(updatedProfile: AdminProfile) {
+  const applyProfileUpdate = useCallback((updatedProfile: AdminProfile) => {
     setProfile(updatedProfile);
     setUsername(updatedProfile.username);
     setFullName(updatedProfile.full_name);
     setProfileImageVersion(Date.now());
 
     saveAdminProfile(updatedProfile);
-  }
+  }, []);
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setLoadingProfile(true);
     setProfileError("");
     setProfileNotice("");
@@ -176,7 +280,7 @@ export default function AdminSettingsPage() {
     } finally {
       setLoadingProfile(false);
     }
-  }
+  }, [applyProfileUpdate]);
 
   async function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -342,8 +446,12 @@ export default function AdminSettingsPage() {
   }
 
   useEffect(() => {
-    loadProfile();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      void loadProfile();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadProfile]);
 
   if (loadingProfile) {
     return (
@@ -659,7 +767,397 @@ export default function AdminSettingsPage() {
           </Reveal>
         </div>
       </div>
+
+      <Reveal delay={0.16}>
+        <PushNotificationSection />
+      </Reveal>
     </PageTransition>
+  );
+}
+
+function PushNotificationSection() {
+  const [status, setStatus] = useState<FirebasePushStatus | null>(null);
+  const [preferences, setPreferences] =
+    useState<AdminNotificationPreference | null>(null);
+  const [deviceTokens, setDeviceTokens] = useState<AdminDeviceToken[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [savingPreference, setSavingPreference] =
+    useState<AdminNotificationPreferenceKey | null>(null);
+  const [deactivatingTokenId, setDeactivatingTokenId] = useState<number | null>(
+    null,
+  );
+
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const activeTokenCount = useMemo(() => {
+    return deviceTokens.filter((token) => token.is_active).length;
+  }, [deviceTokens]);
+
+  const loadPushSettings = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const [statusResponse, preferenceResponse, tokensResponse] =
+        await Promise.all([
+          api.get<FirebasePushStatus>("/push-notifications/status"),
+          api.get<AdminNotificationPreference>(
+            "/push-notifications/preferences",
+          ),
+          api.get<AdminDeviceToken[]>("/push-notifications/device-tokens"),
+        ]);
+
+      setStatus(statusResponse.data);
+      setPreferences(preferenceResponse.data);
+      setDeviceTokens(tokensResponse.data);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to load push notification settings.",
+        ),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadPushSettings();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadPushSettings]);
+
+  async function handlePreferenceToggle(
+    key: AdminNotificationPreferenceKey,
+    nextValue: boolean,
+  ) {
+    if (!preferences) return;
+
+    const previousPreferences = preferences;
+
+    setSavingPreference(key);
+    setError("");
+    setNotice("");
+    setPreferences({
+      ...preferences,
+      [key]: nextValue,
+    });
+
+    try {
+      const response = await api.patch<AdminNotificationPreference>(
+        "/push-notifications/preferences",
+        {
+          [key]: nextValue,
+        },
+      );
+
+      setPreferences(response.data);
+      setNotice("Notification preferences saved.");
+      window.setTimeout(() => setNotice(""), 2400);
+    } catch (requestError) {
+      setPreferences(previousPreferences);
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to update notification preferences.",
+        ),
+      );
+    } finally {
+      setSavingPreference(null);
+    }
+  }
+
+  async function handleDeactivateToken(deviceTokenId: number) {
+    setDeactivatingTokenId(deviceTokenId);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await api.patch<AdminDeviceToken>(
+        `/push-notifications/device-tokens/${deviceTokenId}/deactivate`,
+      );
+
+      setDeviceTokens((current) =>
+        current.map((token) =>
+          token.device_token_id === deviceTokenId ? response.data : token,
+        ),
+      );
+      setNotice("Device token deactivated.");
+      window.setTimeout(() => setNotice(""), 2400);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(requestError, "Unable to deactivate device token."),
+      );
+    } finally {
+      setDeactivatingTokenId(null);
+    }
+  }
+
+  return (
+    <GlassCard glow="cyan">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
+            Push notifications
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-white">
+            Firebase status and delivery preferences
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+            Manage push delivery settings and saved device tokens for this
+            admin account.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void loadPushSettings()}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-teal-500/30 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoading ? (
+            <Loader2 size={17} className="animate-spin" />
+          ) : (
+            <RefreshCw size={17} />
+          )}
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-5 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          {error}
+        </div>
+      )}
+
+      {notice && (
+        <div className="mt-5 flex items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          <CheckCircle2 size={17} />
+          {notice}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-8 text-slate-300">
+          <Loader2 size={20} className="animate-spin text-teal-300" />
+          Loading push notification settings...
+        </div>
+      ) : (
+        <div className="mt-6 space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/45 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Firebase sending
+                  </p>
+                  <p
+                    className={`mt-2 text-xl font-bold ${
+                      status?.firebase_enabled
+                        ? "text-emerald-200"
+                        : "text-amber-200"
+                    }`}
+                  >
+                    {status?.firebase_enabled ? "Enabled" : "Disabled"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-teal-200">
+                  <Power size={20} />
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                {status?.message || "Firebase status unavailable."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/45 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Firebase credentials
+                  </p>
+                  <p
+                    className={`mt-2 text-xl font-bold ${
+                      status?.firebase_configured
+                        ? "text-emerald-200"
+                        : "text-amber-200"
+                    }`}
+                  >
+                    {status?.firebase_configured ? "Configured" : "Missing"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-slate-200">
+                  <Server size={20} />
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Private Firebase configuration is not exposed in this dashboard.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/45 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Active tokens
+                  </p>
+                  <p className="mt-2 text-xl font-bold text-white">
+                    {activeTokenCount} / {deviceTokens.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-teal-200">
+                  <Smartphone size={20} />
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Saved device tokens tied to this admin user.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <BellRing size={18} className="text-teal-300" />
+              <h3 className="text-lg font-semibold text-white">
+                Notification preferences
+              </h3>
+            </div>
+
+            {!preferences ? (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-8 text-sm text-slate-400">
+                Notification preferences are not available.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {notificationPreferenceFields.map((field) => {
+                  const enabled = preferences[field.key];
+                  const saving = savingPreference === field.key;
+
+                  return (
+                    <button
+                      key={field.key}
+                      type="button"
+                      aria-pressed={enabled}
+                      onClick={() =>
+                        void handlePreferenceToggle(field.key, !enabled)
+                      }
+                      disabled={savingPreference !== null}
+                      className={`rounded-2xl border p-4 text-left transition hover:border-teal-500/30 disabled:cursor-not-allowed disabled:opacity-70 ${
+                        enabled
+                          ? "border-teal-500/20 bg-teal-500/10"
+                          : "border-slate-800 bg-slate-950/45"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-white">
+                            {field.label}
+                          </p>
+                          <p className="mt-1 text-sm leading-5 text-slate-400">
+                            {field.detail}
+                          </p>
+                        </div>
+
+                        <span
+                          className={
+                            enabled ? "text-teal-200" : "text-slate-500"
+                          }
+                        >
+                          {saving ? (
+                            <Loader2 size={22} className="animate-spin" />
+                          ) : enabled ? (
+                            <ToggleRight size={26} />
+                          ) : (
+                            <ToggleLeft size={26} />
+                          )}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <Smartphone size={18} className="text-teal-300" />
+              <h3 className="text-lg font-semibold text-white">
+                Saved device tokens
+              </h3>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {deviceTokens.length === 0 ? (
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-8 text-sm text-slate-400">
+                  No device tokens are registered for this admin account.
+                </div>
+              ) : (
+                deviceTokens.map((token) => (
+                  <div
+                    key={token.device_token_id}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/45 p-4"
+                  >
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold capitalize text-teal-200">
+                            {token.platform}
+                          </span>
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                              token.is_active
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                                : "border-slate-700 bg-slate-900 text-slate-300"
+                            }`}
+                          >
+                            {token.is_active ? "Active" : "Inactive"}
+                          </span>
+                          <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-300">
+                            Token #{token.device_token_id}
+                          </span>
+                        </div>
+
+                        <p className="mt-3 break-all font-mono text-sm text-slate-300">
+                          {maskToken(token.token)}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                          <span>Created {formatDateTime(token.created_at)}</span>
+                          <span>Last used {formatDateTime(token.last_used_at)}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleDeactivateToken(token.device_token_id)
+                        }
+                        disabled={!token.is_active || deactivatingTokenId !== null}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400/40 hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deactivatingTokenId === token.device_token_id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <XCircle size={16} />
+                        )}
+                        Deactivate
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </GlassCard>
   );
 }
 
