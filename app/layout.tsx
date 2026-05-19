@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Planora Admin",
   description: "Planora admin operations dashboard",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -17,3 +21,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+

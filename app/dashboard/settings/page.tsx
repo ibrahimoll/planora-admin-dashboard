@@ -5,8 +5,8 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
 import { API_BASE_URL, api } from "@/lib/api";
-import { registerBrowserFcmToken } from "@/lib/firebaseClient";
 import { clearAdminToken } from "@/lib/auth";
+import { registerBrowserFcmToken } from "@/lib/firebaseClient";
 import type {
   AdminDeviceToken,
   AdminNotificationPreference,
@@ -1534,3 +1534,4 @@ function PasswordField({
       </div>
     </div>
   );
+}
