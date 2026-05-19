@@ -1,5 +1,8 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -63,13 +66,18 @@ function formatType(value: string) {
 }
 
 function typeBadgeClass(value: string) {
-  if (value === "risk") return "border-rose-500/20 bg-rose-500/10 text-rose-200";
+  if (value === "risk") {
+    return "border-rose-500/20 bg-rose-500/10 text-rose-200";
+  }
+
   if (value === "deadline") {
     return "border-amber-500/20 bg-amber-500/10 text-amber-200";
   }
+
   if (value === "system") {
     return "border-violet-500/20 bg-violet-500/10 text-violet-200";
   }
+
   return "border-teal-500/20 bg-teal-500/10 text-teal-200";
 }
 
@@ -81,6 +89,9 @@ export default function AdminNotificationsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] =
+    useState<AdminNotification | null>(null);
+
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -98,6 +109,7 @@ export default function AdminNotificationsPage() {
       setUnreadCount(unreadResponse.data.unread_count);
     } catch (requestError) {
       setNotifications([]);
+      setUnreadCount(0);
       setError(
         getErrorMessage(requestError, "Could not load notifications."),
       );
@@ -148,8 +160,10 @@ export default function AdminNotificationsPage() {
       dispatchAdminNotificationsUpdated();
       setNotice(successMessage);
       window.setTimeout(() => setNotice(""), 2400);
+      return true;
     } catch (requestError) {
       setError(getErrorMessage(requestError, fallbackError));
+      return false;
     } finally {
       setIsActionLoading(false);
     }
@@ -165,14 +179,15 @@ export default function AdminNotificationsPage() {
 
   async function handleMarkAllRead() {
     await runNotificationAction(
-      () => api.patch<AdminNotificationMessageResponse>("/notifications/read-all"),
+      () =>
+        api.patch<AdminNotificationMessageResponse>("/notifications/read-all"),
       "All notifications marked as read.",
       "Could not mark all notifications as read.",
     );
   }
 
   async function handleDelete(notificationId: number) {
-    await runNotificationAction(
+    return runNotificationAction(
       () =>
         api.delete<AdminNotificationMessageResponse>(
           `/notifications/${notificationId}`,
@@ -180,6 +195,16 @@ export default function AdminNotificationsPage() {
       "Notification deleted.",
       "Could not delete notification.",
     );
+  }
+
+  async function handleConfirmDelete() {
+    if (!notificationToDelete) return;
+
+    const deleted = await handleDelete(notificationToDelete.notification_id);
+
+    if (deleted) {
+      setNotificationToDelete(null);
+    }
   }
 
   return (
@@ -202,9 +227,13 @@ export default function AdminNotificationsPage() {
           <button
             type="button"
             onClick={() => void loadNotifications()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={16} />
+            <RefreshCw
+              size={16}
+              className={isLoading ? "animate-spin" : undefined}
+            />
             Refresh
           </button>
 
@@ -301,25 +330,29 @@ export default function AdminNotificationsPage() {
       </Reveal>
 
       <Reveal>
-        <GlassCard>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="flex items-center gap-3 text-slate-300">
-                <Loader2 size={20} className="animate-spin text-teal-300" />
-                Loading notifications...
-              </div>
-            </div>
-          ) : visibleNotifications.length === 0 ? (
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-12 text-center">
-              <CheckCircle2 size={36} className="mx-auto text-slate-500" />
-              <h3 className="mt-4 text-lg font-semibold text-white">
-                No notifications found
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Try a different filter or search term.
-              </p>
-            </div>
-          ) : (
+        {isLoading ? (
+          <AdminLoadingState
+            variant="page"
+            title="Loading notifications"
+            message="Fetching your Planora alerts and unread count."
+            rows={5}
+          />
+        ) : visibleNotifications.length === 0 ? (
+          <AdminEmptyState
+            icon={CheckCircle2}
+            title={
+              notifications.length === 0
+                ? "No notifications"
+                : "No matching notifications"
+            }
+            message={
+              notifications.length === 0
+                ? "New Planora alerts will appear here."
+                : "Try a different filter or search term."
+            }
+          />
+        ) : (
+          <GlassCard>
             <div className="space-y-3">
               {visibleNotifications.map((notification) => {
                 const unread = notification.is_read === false;
@@ -387,9 +420,7 @@ export default function AdminNotificationsPage() {
 
                         <button
                           type="button"
-                          onClick={() =>
-                            void handleDelete(notification.notification_id)
-                          }
+                          onClick={() => setNotificationToDelete(notification)}
                           disabled={isActionLoading}
                           className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400/40 hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -402,9 +433,28 @@ export default function AdminNotificationsPage() {
                 );
               })}
             </div>
-          )}
-        </GlassCard>
+          </GlassCard>
+        )}
       </Reveal>
+
+      <ConfirmDialog
+        open={Boolean(notificationToDelete)}
+        title="Delete notification?"
+        message={
+          notificationToDelete?.title
+            ? `This will permanently remove "${notificationToDelete.title}" from your notification list.`
+            : "This will permanently remove this notification from your list."
+        }
+        confirmLabel="Delete notification"
+        dangerText="This action cannot be undone."
+        loading={isActionLoading}
+        onClose={() => {
+          if (!isActionLoading) {
+            setNotificationToDelete(null);
+          }
+        }}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </PageTransition>
   );
 }
