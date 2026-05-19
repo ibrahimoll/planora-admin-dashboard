@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -7,12 +9,10 @@ import { StatCard } from "@/components/ui/StatCard";
 import { api } from "@/lib/api";
 import type { AdminLog, AdminUser } from "@/types/admin";
 import {
-  AlertTriangle,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
   FilterX,
-  Loader2,
   RefreshCw,
   ScrollText,
   Search,
@@ -196,9 +196,10 @@ export default function AdminLogsPage() {
         <button
           type="button"
           onClick={() => void loadLogs()}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -398,22 +399,21 @@ export default function AdminLogsPage() {
 
           <div className="mt-6">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="flex items-center gap-3 text-slate-300">
-                  <Loader2 size={18} className="animate-spin text-teal-300" />
-                  Loading profile settings... Loading admin logs...
-                </div>
-              </div>
+              <AdminLoadingState
+                title="Loading admin logs"
+                message="Fetching audit trail records from the backend."
+                rows={5}
+              />
             ) : logs.length === 0 ? (
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-12 text-center">
-                <AlertTriangle size={36} className="mx-auto text-slate-500" />
-                <h3 className="mt-4 text-lg font-semibold text-white">
-                  No admin logs found
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Try broadening the filters or changing the date range.
-                </p>
-              </div>
+              <AdminEmptyState
+                icon={ScrollText}
+                title="No admin logs found"
+                message={
+                  activeFilterCount > 0
+                    ? "Try broadening the filters or changing the date range."
+                    : "Admin actions will appear here when changes are made."
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {logs.map((log) => (

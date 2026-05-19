@@ -5,14 +5,24 @@ import { motion } from "framer-motion";
 type PlanoraLoaderProps = {
   title?: string;
   message?: string;
+
+  // Backward-compatible aliases used by login/page.tsx
+  label?: string;
+  detail?: string;
 };
 
 const dots = [0, 1, 2];
 
 export function PlanoraLoader({
-  title = "Checking admin access",
-  message = "Securing your Planora dashboard session.",
+  title,
+  message,
+  label,
+  detail,
 }: PlanoraLoaderProps) {
+  const displayTitle = title ?? label ?? "Checking admin access";
+  const displayMessage =
+    message ?? detail ?? "Securing your Planora dashboard session.";
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080d1a] px-6 text-white">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(45,212,191,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(45,212,191,0.035)_1px,transparent_1px)] bg-[size:48px_48px]" />
@@ -82,7 +92,7 @@ export function PlanoraLoader({
           transition={{ delay: 0.18, duration: 0.28 }}
           className="mt-3 text-2xl font-bold text-white"
         >
-          {title}
+          {displayTitle}
         </motion.h1>
 
         <motion.p
@@ -91,7 +101,7 @@ export function PlanoraLoader({
           transition={{ delay: 0.24, duration: 0.28 }}
           className="mt-3 text-sm leading-6 text-slate-400"
         >
-          {message}
+          {displayMessage}
         </motion.p>
 
         <div className="mt-8 flex items-center justify-center gap-2">
