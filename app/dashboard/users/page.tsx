@@ -1,5 +1,8 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -11,7 +14,6 @@ import type {
   AdminUserActionResponse,
   AdminUserDetail,
 } from "@/types/admin";
-import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -34,15 +36,21 @@ import {
   Users,
   UserX,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type RoleFilter = "all" | "admin" | "user";
 type StatusFilter = "all" | "active" | "inactive";
 type VerificationFilter = "all" | "verified" | "unverified";
+type UserAction = "activate" | "deactivate" | "promote" | "demote";
 
 type CurrentAdmin = {
   user_id: number;
   role: "user" | "admin";
+};
+
+type PendingAction = {
+  user: AdminUser;
+  action: UserAction;
 };
 
 type ApiError = {
@@ -65,16 +73,34 @@ const statusOptions: Array<{ label: string; value: StatusFilter }> = [
   { label: "Inactive", value: "inactive" },
 ];
 
-const verificationOptions: Array<{
-  label: string;
-  value: VerificationFilter;
-}> = [
+const verificationOptions: Array<{ label: string; value: VerificationFilter }> = [
   { label: "All email", value: "all" },
   { label: "Verified", value: "verified" },
   { label: "Unverified", value: "unverified" },
 ];
 
 const ACTIVITY_PAGE_SIZE = 6;
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const detail = (error as ApiError).response?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
+
+function getDisplayName(user: Pick<AdminUser, "full_name" | "username">) {
+  return user.full_name?.trim() || user.username;
+}
+
+function getInitials(user: Pick<AdminUser, "full_name" | "username">) {
+  const source = getDisplayName(user);
+  const initials = source
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "U";
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -98,29 +124,61 @@ function formatRelative(value: string) {
   return `${diffDays}d ago`;
 }
 
-function getApiErrorMessage(error: unknown, fallback: string) {
-  const detail = (error as ApiError).response?.data?.detail;
-  return typeof detail === "string" ? detail : fallback;
+function formatAction(action: UserAction) {
+  if (action === "activate") return "Activate user";
+  if (action === "deactivate") return "Deactivate user";
+  if (action === "promote") return "Promote to admin";
+  return "Demote to user";
 }
 
-function getInitials(user: Pick<AdminUser, "full_name" | "username">) {
-  const source = user.full_name?.trim() || user.username;
+function getActionCopy(pendingAction: PendingAction | null) {
+  if (!pendingAction) {
+    return {
+      title: "Confirm user action",
+      message: "Confirm this admin user action.",
+      confirmLabel: "Confirm",
+      dangerText: undefined,
+    };
+  }
 
-  return source
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+  const name = getDisplayName(pendingAction.user);
+
+  if (pendingAction.action === "activate") {
+    return {
+      title: "Activate user?",
+      message: `This will restore protected-route access for ${name}.`,
+      confirmLabel: "Activate user",
+      dangerText: "Only activate accounts that should regain access to Planora.",
+    };
+  }
+
+  if (pendingAction.action === "deactivate") {
+    return {
+      title: "Deactivate user?",
+      message: `This will block ${name} from accessing protected Planora routes.`,
+      confirmLabel: "Deactivate user",
+      dangerText: "This is an admin-level account action. The user can be reactivated later.",
+    };
+  }
+
+  if (pendingAction.action === "promote") {
+    return {
+      title: "Promote user to admin?",
+      message: `${name} will receive administrator privileges in Planora.`,
+      confirmLabel: "Promote to admin",
+      dangerText: "Admin users can access sensitive dashboard features and user controls.",
+    };
+  }
+
+  return {
+    title: "Demote admin to user?",
+    message: `${name} will lose administrator privileges.`,
+    confirmLabel: "Demote to user",
+    dangerText: "Make sure at least one trusted admin account remains available.",
+  };
 }
 
-function StatusPill({
-  active,
-  children,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-}) {
+function StatusPill({ active, children }: { active: boolean; children: React.ReactNode }) {
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
@@ -129,11 +187,7 @@ function StatusPill({
           : "border-rose-300/20 bg-rose-300/10 text-rose-200"
       }`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          active ? "bg-emerald-300" : "bg-rose-300"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-300" : "bg-rose-300"}`} />
       {children}
     </span>
   );
@@ -170,24 +224,25 @@ function FilterButton<T extends string>({
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(
-    null,
-  );
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
   const [activity, setActivity] = useState<AdminActivityLog[]>([]);
   const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin | null>(null);
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [verificationFilter, setVerificationFilter] =
-    useState<VerificationFilter>("all");
+  const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("all");
   const [limit, setLimit] = useState(50);
   const [offset, setOffset] = useState(0);
+
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [activityHasMore, setActivityHasMore] = useState(false);
   const [actionUserId, setActionUserId] = useState<number | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -200,147 +255,20 @@ export default function AdminUsersPage() {
     return { total, active, admins, verified };
   }, [users]);
 
-  useEffect(() => {
-    async function loadCurrentAdmin() {
-      try {
-        const response = await api.get<CurrentAdmin>("/auth/me");
-        setCurrentAdmin(response.data);
-      } catch {
-        setCurrentAdmin(null);
-      }
-    }
+  const actionCopy = getActionCopy(pendingAction);
 
-    loadCurrentAdmin();
+  const loadCurrentAdmin = useCallback(async () => {
+    try {
+      const response = await api.get<CurrentAdmin>("/auth/me");
+      setCurrentAdmin(response.data);
+    } catch {
+      setCurrentAdmin(null);
+    }
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadUsers() {
-      setLoadingUsers(true);
-      setError("");
-
-      try {
-        const response = await api.get<AdminUser[]>("/admin/users", {
-          signal: controller.signal,
-          params: {
-            limit,
-            offset,
-            role: roleFilter === "all" ? undefined : roleFilter,
-            is_active:
-              statusFilter === "all" ? undefined : statusFilter === "active",
-            is_email_verified:
-              verificationFilter === "all"
-                ? undefined
-                : verificationFilter === "verified",
-            search: search.trim() || undefined,
-          },
-        });
-
-        setUsers(response.data);
-
-        if (response.data.length === 0) {
-          setSelectedUser(null);
-          setActivity([]);
-          setActivityHasMore(false);
-        }
-
-        setSelectedUserId((current) => {
-          if (response.data.length === 0) return null;
-
-          if (
-            current &&
-            response.data.some((user) => user.user_id === current)
-          ) {
-            return current;
-          }
-
-          return response.data[0].user_id;
-        });
-      } catch (requestError) {
-        if (!controller.signal.aborted) {
-          setError(
-            getApiErrorMessage(requestError, "Unable to load users right now."),
-          );
-          setUsers([]);
-          setSelectedUserId(null);
-          setSelectedUser(null);
-          setActivity([]);
-          setActivityHasMore(false);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingUsers(false);
-        }
-      }
-    }
-
-    const timeoutId = window.setTimeout(loadUsers, 250);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [limit, offset, roleFilter, search, statusFilter, verificationFilter]);
-
-  useEffect(() => {
-    if (!selectedUserId) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    async function loadUserDetail() {
-      setLoadingDetail(true);
-      setLoadingActivity(true);
-      setActivityHasMore(false);
-
-      try {
-        const [detailResponse, activityResponse] = await Promise.all([
-          api.get<AdminUserDetail>(`/admin/users/${selectedUserId}`, {
-            signal: controller.signal,
-          }),
-          api.get<AdminActivityLog[]>(
-            `/admin/users/${selectedUserId}/activity`,
-            {
-              signal: controller.signal,
-              params: { limit: ACTIVITY_PAGE_SIZE, offset: 0 },
-            },
-          ),
-        ]);
-
-        setSelectedUser(detailResponse.data);
-        setActivity(activityResponse.data);
-        setActivityHasMore(activityResponse.data.length === ACTIVITY_PAGE_SIZE);
-      } catch (requestError) {
-        if (!controller.signal.aborted) {
-          setError(
-            getApiErrorMessage(
-              requestError,
-              "Unable to load the selected user.",
-            ),
-          );
-          setSelectedUser(null);
-          setActivity([]);
-          setActivityHasMore(false);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingDetail(false);
-          setLoadingActivity(false);
-        }
-      }
-    }
-
-    loadUserDetail();
-
-    return () => controller.abort();
-  }, [selectedUserId]);
-
-  async function refreshUsers() {
+  const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
     setError("");
-    setNotice("");
 
     try {
       const response = await api.get<AdminUser[]>("/admin/users", {
@@ -348,12 +276,9 @@ export default function AdminUsersPage() {
           limit,
           offset,
           role: roleFilter === "all" ? undefined : roleFilter,
-          is_active:
-            statusFilter === "all" ? undefined : statusFilter === "active",
+          is_active: statusFilter === "all" ? undefined : statusFilter === "active",
           is_email_verified:
-            verificationFilter === "all"
-              ? undefined
-              : verificationFilter === "verified",
+            verificationFilter === "all" ? undefined : verificationFilter === "verified",
           search: search.trim() || undefined,
         },
       });
@@ -365,60 +290,98 @@ export default function AdminUsersPage() {
         setSelectedUser(null);
         setActivity([]);
         setActivityHasMore(false);
-      } else {
-        setSelectedUserId((current) => {
-          if (
-            current &&
-            response.data.some((user) => user.user_id === current)
-          ) {
-            return current;
-          }
-
-          return response.data[0].user_id;
-        });
+        return;
       }
+
+      setSelectedUserId((current) => {
+        if (current && response.data.some((user) => user.user_id === current)) {
+          return current;
+        }
+
+        return response.data[0].user_id;
+      });
     } catch (requestError) {
-      setError(
-        getApiErrorMessage(requestError, "Unable to refresh users right now."),
-      );
+      setError(getApiErrorMessage(requestError, "Unable to load users right now."));
+      setUsers([]);
+      setSelectedUserId(null);
+      setSelectedUser(null);
+      setActivity([]);
+      setActivityHasMore(false);
     } finally {
       setLoadingUsers(false);
     }
+  }, [limit, offset, roleFilter, search, statusFilter, verificationFilter]);
+
+  const loadUserDetail = useCallback(async (userId: number) => {
+    setLoadingDetail(true);
+    setLoadingActivity(true);
+    setActivityHasMore(false);
+
+    try {
+      const [detailResponse, activityResponse] = await Promise.all([
+        api.get<AdminUserDetail>(`/admin/users/${userId}`),
+        api.get<AdminActivityLog[]>(`/admin/users/${userId}/activity`, {
+          params: { limit: ACTIVITY_PAGE_SIZE, offset: 0 },
+        }),
+      ]);
+
+      setSelectedUser(detailResponse.data);
+      setActivity(activityResponse.data);
+      setActivityHasMore(activityResponse.data.length === ACTIVITY_PAGE_SIZE);
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Unable to load the selected user."));
+      setSelectedUser(null);
+      setActivity([]);
+      setActivityHasMore(false);
+    } finally {
+      setLoadingDetail(false);
+      setLoadingActivity(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCurrentAdmin();
+  }, [loadCurrentAdmin]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadUsers();
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadUsers]);
+
+  useEffect(() => {
+    if (!selectedUserId) return;
+
+    void loadUserDetail(selectedUserId);
+  }, [loadUserDetail, selectedUserId]);
+
+  async function refreshUsers() {
+    setNotice("");
+    await loadUsers();
   }
 
-  async function handleAction(
-    user: AdminUser,
-    action: "activate" | "deactivate" | "promote" | "demote",
-  ) {
+  async function handleAction(user: AdminUser, action: UserAction) {
     setActionUserId(user.user_id);
     setError("");
     setNotice("");
 
     try {
-      let response;
-
-      if (action === "activate" || action === "deactivate") {
-        response = await api.patch<AdminUserActionResponse>(
-          `/admin/users/${user.user_id}/${action}`,
-        );
-      } else {
-        response = await api.patch<AdminUserActionResponse>(
-          `/admin/users/${user.user_id}/role`,
-          { role: action === "promote" ? "admin" : "user" },
-        );
-      }
+      const response =
+        action === "activate" || action === "deactivate"
+          ? await api.patch<AdminUserActionResponse>(`/admin/users/${user.user_id}/${action}`)
+          : await api.patch<AdminUserActionResponse>(`/admin/users/${user.user_id}/role`, {
+              role: action === "promote" ? "admin" : "user",
+            });
 
       setNotice(response.data.message);
-      await refreshUsers();
       setSelectedUserId(response.data.user.user_id);
       setSelectedUser(response.data.user);
+      setPendingAction(null);
+      await loadUsers();
     } catch (requestError) {
-      setError(
-        getApiErrorMessage(
-          requestError,
-          "Unable to update this user right now.",
-        ),
-      );
+      setError(getApiErrorMessage(requestError, "Unable to update this user right now."));
     } finally {
       setActionUserId(null);
     }
@@ -444,15 +407,14 @@ export default function AdminUsersPage() {
       setActivity((current) => [...current, ...response.data]);
       setActivityHasMore(response.data.length === ACTIVITY_PAGE_SIZE);
     } catch (requestError) {
-      setError(
-        getApiErrorMessage(
-          requestError,
-          "Unable to load more user activity.",
-        ),
-      );
+      setError(getApiErrorMessage(requestError, "Unable to load more user activity."));
     } finally {
       setLoadingMoreActivity(false);
     }
+  }
+
+  function openUserAction(user: AdminUser, action: UserAction) {
+    setPendingAction({ user, action });
   }
 
   function goToPreviousPage() {
@@ -479,7 +441,6 @@ export default function AdminUsersPage() {
             accent="cyan"
             signal="Search results"
           />
-
           <StatCard
             title="Active"
             value={loadingUsers ? "--" : stats.active}
@@ -488,7 +449,6 @@ export default function AdminUsersPage() {
             accent="emerald"
             signal="Account status"
           />
-
           <StatCard
             title="Admins"
             value={loadingUsers ? "--" : stats.admins}
@@ -497,7 +457,6 @@ export default function AdminUsersPage() {
             accent="purple"
             signal="Role count"
           />
-
           <StatCard
             title="Verified"
             value={loadingUsers ? "--" : stats.verified}
@@ -518,11 +477,7 @@ export default function AdminUsersPage() {
           }
           glow={error ? "rose" : "cyan"}
         >
-          <div
-            className={`flex items-center gap-3 ${
-              error ? "text-rose-100" : "text-emerald-100"
-            }`}
-          >
+          <div className={`flex items-center gap-3 ${error ? "text-rose-100" : "text-emerald-100"}`}>
             {error ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
             <p className="text-sm">{error || notice}</p>
           </div>
@@ -538,9 +493,7 @@ export default function AdminUsersPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
                     User management
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">
-                    User list
-                  </h2>
+                  <h2 className="mt-2 text-2xl font-bold text-white">User list</h2>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -559,14 +512,11 @@ export default function AdminUsersPage() {
 
                   <button
                     type="button"
-                    onClick={refreshUsers}
+                    onClick={() => void refreshUsers()}
                     disabled={loadingUsers}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <RefreshCw
-                      size={17}
-                      className={loadingUsers ? "animate-spin" : ""}
-                    />
+                    <RefreshCw size={17} className={loadingUsers ? "animate-spin" : ""} />
                     Refresh
                   </button>
                 </div>
@@ -629,42 +579,33 @@ export default function AdminUsersPage() {
                 </div>
 
                 {loadingUsers ? (
-                  <div className="space-y-3 p-5">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
-                      />
-                    ))}
+                  <div className="p-5">
+                    <AdminLoadingState
+                      title="Loading users"
+                      message="Fetching admin user management records."
+                      rows={5}
+                    />
                   </div>
                 ) : users.length === 0 ? (
-                  <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-200">
-                      <SlidersHorizontal size={24} />
-                    </div>
-                    <h3 className="mt-4 text-xl font-bold text-white">
-                      No users matched
-                    </h3>
-                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                      Adjust the search or filters to show more accounts.
-                    </p>
+                  <div className="p-5">
+                    <AdminEmptyState
+                      icon={SlidersHorizontal}
+                      title="No users found"
+                      message="Users matching your filters will appear here."
+                    />
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-800">
                     {users.map((user) => {
                       const isSelected = selectedUserId === user.user_id;
-                      const isCurrentAdmin =
-                        currentAdmin?.user_id === user.user_id;
+                      const isCurrentAdmin = currentAdmin?.user_id === user.user_id;
                       const actionLoading = actionUserId === user.user_id;
 
                       return (
-                        <motion.div
+                        <div
                           key={user.user_id}
-                          layout
                           className={`grid gap-4 p-4 transition lg:grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] lg:items-center lg:px-5 ${
-                            isSelected
-                              ? "bg-teal-500/[0.08]"
-                              : "hover:bg-slate-900/60"
+                            isSelected ? "bg-teal-500/[0.08]" : "hover:bg-slate-900/60"
                           }`}
                         >
                           <button
@@ -678,7 +619,7 @@ export default function AdminUsersPage() {
                             <span className="min-w-0">
                               <span className="flex items-center gap-2">
                                 <span className="truncate font-semibold text-white">
-                                  {user.full_name || user.username}
+                                  {getDisplayName(user)}
                                 </span>
                                 {isCurrentAdmin && (
                                   <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-violet-200">
@@ -700,11 +641,7 @@ export default function AdminUsersPage() {
                                   : "border-teal-500/20 bg-teal-500/10 text-teal-200"
                               }`}
                             >
-                              {user.role === "admin" ? (
-                                <Crown size={13} />
-                              ) : (
-                                <Users size={13} />
-                              )}
+                              {user.role === "admin" ? <Crown size={13} /> : <Users size={13} />}
                               {user.role}
                             </span>
 
@@ -715,14 +652,8 @@ export default function AdminUsersPage() {
                                   : "border-amber-300/20 bg-amber-300/10 text-amber-200"
                               }`}
                             >
-                              {user.is_email_verified ? (
-                                <MailCheck size={13} />
-                              ) : (
-                                <MailWarning size={13} />
-                              )}
-                              {user.is_email_verified
-                                ? "Verified"
-                                : "Unverified"}
+                              {user.is_email_verified ? <MailCheck size={13} /> : <MailWarning size={13} />}
+                              {user.is_email_verified ? "Verified" : "Unverified"}
                             </span>
                           </div>
 
@@ -749,49 +680,27 @@ export default function AdminUsersPage() {
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
                               onClick={() =>
-                                handleAction(
-                                  user,
-                                  user.is_active ? "deactivate" : "activate",
-                                )
+                                openUserAction(user, user.is_active ? "deactivate" : "activate")
                               }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200 disabled:cursor-not-allowed disabled:opacity-40"
-                              aria-label={
-                                user.is_active
-                                  ? `Deactivate ${user.username}`
-                                  : `Activate ${user.username}`
-                              }
+                              aria-label={user.is_active ? `Deactivate ${user.username}` : `Activate ${user.username}`}
                             >
-                              {user.is_active ? (
-                                <UserX size={16} />
-                              ) : (
-                                <Power size={16} />
-                              )}
+                              {user.is_active ? <UserX size={16} /> : <Power size={16} />}
                             </button>
 
                             <button
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
                               onClick={() =>
-                                handleAction(
-                                  user,
-                                  user.role === "admin" ? "demote" : "promote",
-                                )
+                                openUserAction(user, user.role === "admin" ? "demote" : "promote")
                               }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-violet-500/25 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
-                              aria-label={
-                                user.role === "admin"
-                                  ? `Demote ${user.username}`
-                                  : `Promote ${user.username}`
-                              }
+                              aria-label={user.role === "admin" ? `Demote ${user.username}` : `Promote ${user.username}`}
                             >
-                              {user.role === "admin" ? (
-                                <ShieldOff size={16} />
-                              ) : (
-                                <ShieldCheck size={16} />
-                              )}
+                              {user.role === "admin" ? <ShieldOff size={16} /> : <ShieldCheck size={16} />}
                             </button>
                           </div>
-                        </motion.div>
+                        </div>
                       );
                     })}
                   </div>
@@ -852,21 +761,18 @@ export default function AdminUsersPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   User detail
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-white">
-                  Account summary
-                </h2>
+                <h2 className="mt-2 text-2xl font-bold text-white">Account summary</h2>
               </div>
               <Activity size={22} className="text-teal-300" />
             </div>
 
             {loadingDetail ? (
-              <div className="mt-6 space-y-3">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-20 animate-pulse rounded-xl border border-slate-800 bg-slate-900/70"
-                  />
-                ))}
+              <div className="mt-6">
+                <AdminLoadingState
+                  title="Loading user detail"
+                  message="Fetching selected user profile and activity."
+                  rows={4}
+                />
               </div>
             ) : selectedUser ? (
               <div className="mt-6 space-y-5">
@@ -876,12 +782,10 @@ export default function AdminUsersPage() {
                   </div>
 
                   <h3 className="mt-4 text-2xl font-semibold text-white">
-                    {selectedUser.full_name || selectedUser.username}
+                    {getDisplayName(selectedUser)}
                   </h3>
 
-                  <p className="mt-1 text-sm text-slate-400">
-                    @{selectedUser.username}
-                  </p>
+                  <p className="mt-1 text-sm text-slate-400">@{selectedUser.username}</p>
 
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <StatusPill active={selectedUser.is_active}>
@@ -896,33 +800,16 @@ export default function AdminUsersPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    {
-                      label: "Projects",
-                      value: selectedUser.counts.projects_created,
-                    },
-                    {
-                      label: "Assigned",
-                      value: selectedUser.counts.assigned_tasks,
-                    },
-                    {
-                      label: "Created",
-                      value: selectedUser.counts.created_tasks,
-                    },
-                    {
-                      label: "Notices",
-                      value: selectedUser.counts.notifications,
-                    },
+                    { label: "Projects", value: selectedUser.counts.projects_created },
+                    { label: "Assigned", value: selectedUser.counts.assigned_tasks },
+                    { label: "Created", value: selectedUser.counts.created_tasks },
+                    { label: "Notices", value: selectedUser.counts.notifications },
                   ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
-                    >
+                    <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                         {item.label}
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">
-                        {item.value}
-                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
                     </div>
                   ))}
                 </div>
@@ -933,24 +820,25 @@ export default function AdminUsersPage() {
                   </p>
 
                   {loadingActivity ? (
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
-                      Loading user activity...
-                    </div>
+                    <AdminLoadingState
+                      title="Loading activity"
+                      message="Fetching recent user activity."
+                      rows={3}
+                    />
                   ) : activity.length === 0 ? (
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
-                      No recent activity found for this user.
-                    </div>
+                    <AdminEmptyState
+                      icon={Activity}
+                      title="No recent activity"
+                      message="Recent activity for the selected user will appear here."
+                    />
                   ) : (
                     <>
                       {activity.map((event) => (
-                        <div
-                          key={event.activity_id}
-                          className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
-                        >
+                        <div key={event.activity_id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                           <div className="flex items-start gap-3">
                             <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-white">
+                              <p className="text-sm font-semibold capitalize text-white">
                                 {event.event_type.replaceAll("_", " ")}
                               </p>
                               <p className="mt-1 text-sm leading-5 text-slate-400">
@@ -972,11 +860,7 @@ export default function AdminUsersPage() {
                           disabled={loadingMoreActivity}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {loadingMoreActivity ? (
-                            <Loader2 size={16} className="animate-spin" />
-                          ) : (
-                            <Clock3 size={16} />
-                          )}
+                          {loadingMoreActivity ? <Loader2 size={16} className="animate-spin" /> : <Clock3 size={16} />}
                           Load more activity
                         </button>
                       )}
@@ -987,51 +871,63 @@ export default function AdminUsersPage() {
                 <div className="grid gap-3">
                   <button
                     type="button"
-                    disabled={
-                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
-                    }
+                    disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
                     onClick={() =>
-                      handleAction(
+                      openUserAction(
                         selectedUser,
                         selectedUser.is_active ? "deactivate" : "activate",
                       )
                     }
                     className="rounded-xl border border-teal-500/20 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {selectedUser.is_active
-                      ? "Deactivate user"
-                      : "Activate user"}
+                    {selectedUser.is_active ? "Deactivate user" : "Activate user"}
                   </button>
 
                   <button
                     type="button"
-                    disabled={
-                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
-                    }
+                    disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
                     onClick={() =>
-                      handleAction(
+                      openUserAction(
                         selectedUser,
                         selectedUser.role === "admin" ? "demote" : "promote",
                       )
                     }
                     className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {selectedUser.role === "admin"
-                      ? "Demote to user"
-                      : "Promote to admin"}
+                    {selectedUser.role === "admin" ? "Demote to user" : "Promote to admin"}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
-                <p className="text-sm text-slate-400">
-                  Select a user to view account details.
-                </p>
+              <div className="mt-6">
+                <AdminEmptyState
+                  icon={Users}
+                  title="No user selected"
+                  message="Select a user to view account details."
+                />
               </div>
             )}
           </GlassCard>
         </section>
       </Reveal>
+
+      <ConfirmDialog
+        open={Boolean(pendingAction)}
+        title={actionCopy.title}
+        message={actionCopy.message}
+        confirmLabel={actionCopy.confirmLabel}
+        dangerText={actionCopy.dangerText}
+        loading={Boolean(actionUserId)}
+        onClose={() => {
+          if (!actionUserId) {
+            setPendingAction(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!pendingAction) return;
+          void handleAction(pendingAction.user, pendingAction.action);
+        }}
+      />
     </PageTransition>
   );
 }
