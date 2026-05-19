@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEmptyState } from "@/components/ui/AdminEmptyState";
+import { AdminLoadingState } from "@/components/ui/AdminLoadingState";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
@@ -22,7 +24,6 @@ import {
   FileText,
   FolderKanban,
   ListChecks,
-  Loader2,
   Printer,
   RefreshCw,
   Search,
@@ -377,9 +378,17 @@ export default function AdminReportsPage() {
           <button
             type="button"
             onClick={refreshReports}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white"
+            disabled={loadingSummaries || loadingProjects || loadingProjectReport}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={16} />
+            <RefreshCw
+              size={16}
+              className={
+                loadingSummaries || loadingProjects || loadingProjectReport
+                  ? "animate-spin"
+                  : ""
+              }
+            />
             Refresh
           </button>
 
@@ -831,16 +840,19 @@ function ProjectReportTab({
             </div>
 
             {loadingProjects && (
-              <div className="mt-5 flex items-center gap-2 text-sm text-slate-400">
-                <Loader2 size={16} className="animate-spin" />
-                Loading projects...
-              </div>
+              <AdminLoadingState
+                title="Loading projects"
+                message="Fetching projects for report generation."
+                rows={3}
+              />
             )}
 
             {!loadingProjects && projects.length === 0 && (
-              <p className="mt-5 text-sm text-slate-400">
-                No projects found yet.
-              </p>
+              <AdminEmptyState
+                icon={FolderKanban}
+                title="No projects found"
+                message="Projects will appear here when reportable projects exist."
+              />
             )}
           </GlassCard>
         </Reveal>
@@ -848,12 +860,11 @@ function ProjectReportTab({
 
       {loadingReport && (
         <Reveal>
-          <GlassCard>
-            <div className="flex items-center gap-3 text-slate-300">
-              <Loader2 size={18} className="animate-spin text-teal-300" />
-              Generating project report...
-            </div>
-          </GlassCard>
+          <AdminLoadingState
+            title="Generating project report"
+            message="Preparing the selected project report from backend data."
+            rows={4}
+          />
         </Reveal>
       )}
 
@@ -1114,10 +1125,11 @@ function ProjectReportTab({
 
 function LoadingBlock({ label }: { label: string }) {
   return (
-    <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/45 px-5 py-8 text-slate-300">
-      <Loader2 size={20} className="animate-spin text-teal-300" />
-      {label}
-    </div>
+    <AdminLoadingState
+      title={label}
+      message="Preparing report metrics from backend data."
+      rows={4}
+    />
   );
 }
 
