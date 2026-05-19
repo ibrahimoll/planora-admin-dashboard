@@ -124,13 +124,6 @@ function formatRelative(value: string) {
   return `${diffDays}d ago`;
 }
 
-function formatAction(action: UserAction) {
-  if (action === "activate") return "Activate user";
-  if (action === "deactivate") return "Deactivate user";
-  if (action === "promote") return "Promote to admin";
-  return "Demote to user";
-}
-
 function getActionCopy(pendingAction: PendingAction | null) {
   if (!pendingAction) {
     return {
@@ -157,7 +150,8 @@ function getActionCopy(pendingAction: PendingAction | null) {
       title: "Deactivate user?",
       message: `This will block ${name} from accessing protected Planora routes.`,
       confirmLabel: "Deactivate user",
-      dangerText: "This is an admin-level account action. The user can be reactivated later.",
+      dangerText:
+        "This is an admin-level account action. The user can be reactivated later.",
     };
   }
 
@@ -166,7 +160,8 @@ function getActionCopy(pendingAction: PendingAction | null) {
       title: "Promote user to admin?",
       message: `${name} will receive administrator privileges in Planora.`,
       confirmLabel: "Promote to admin",
-      dangerText: "Admin users can access sensitive dashboard features and user controls.",
+      dangerText:
+        "Admin users can access sensitive dashboard features and user controls.",
     };
   }
 
@@ -178,7 +173,13 @@ function getActionCopy(pendingAction: PendingAction | null) {
   };
 }
 
-function StatusPill({ active, children }: { active: boolean; children: React.ReactNode }) {
+function StatusPill({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
@@ -187,7 +188,11 @@ function StatusPill({ active, children }: { active: boolean; children: React.Rea
           : "border-rose-300/20 bg-rose-300/10 text-rose-200"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-300" : "bg-rose-300"}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          active ? "bg-emerald-300" : "bg-rose-300"
+        }`}
+      />
       {children}
     </span>
   );
@@ -224,14 +229,17 @@ function FilterButton<T extends string>({
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(
+    null,
+  );
   const [activity, setActivity] = useState<AdminActivityLog[]>([]);
   const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin | null>(null);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("all");
+  const [verificationFilter, setVerificationFilter] =
+    useState<VerificationFilter>("all");
   const [limit, setLimit] = useState(50);
   const [offset, setOffset] = useState(0);
 
@@ -241,7 +249,9 @@ export default function AdminUsersPage() {
   const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [activityHasMore, setActivityHasMore] = useState(false);
   const [actionUserId, setActionUserId] = useState<number | null>(null);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+    null,
+  );
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -276,9 +286,12 @@ export default function AdminUsersPage() {
           limit,
           offset,
           role: roleFilter === "all" ? undefined : roleFilter,
-          is_active: statusFilter === "all" ? undefined : statusFilter === "active",
+          is_active:
+            statusFilter === "all" ? undefined : statusFilter === "active",
           is_email_verified:
-            verificationFilter === "all" ? undefined : verificationFilter === "verified",
+            verificationFilter === "all"
+              ? undefined
+              : verificationFilter === "verified",
           search: search.trim() || undefined,
         },
       });
@@ -294,14 +307,19 @@ export default function AdminUsersPage() {
       }
 
       setSelectedUserId((current) => {
-        if (current && response.data.some((user) => user.user_id === current)) {
+        if (
+          current &&
+          response.data.some((user) => user.user_id === current)
+        ) {
           return current;
         }
 
         return response.data[0].user_id;
       });
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Unable to load users right now."));
+      setError(
+        getApiErrorMessage(requestError, "Unable to load users right now."),
+      );
       setUsers([]);
       setSelectedUserId(null);
       setSelectedUser(null);
@@ -329,7 +347,9 @@ export default function AdminUsersPage() {
       setActivity(activityResponse.data);
       setActivityHasMore(activityResponse.data.length === ACTIVITY_PAGE_SIZE);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Unable to load the selected user."));
+      setError(
+        getApiErrorMessage(requestError, "Unable to load the selected user."),
+      );
       setSelectedUser(null);
       setActivity([]);
       setActivityHasMore(false);
@@ -340,7 +360,11 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    void loadCurrentAdmin();
+    const timeoutId = window.setTimeout(() => {
+      void loadCurrentAdmin();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadCurrentAdmin]);
 
   useEffect(() => {
@@ -352,9 +376,13 @@ export default function AdminUsersPage() {
   }, [loadUsers]);
 
   useEffect(() => {
-    if (!selectedUserId) return;
+    if (!selectedUserId) return undefined;
 
-    void loadUserDetail(selectedUserId);
+    const timeoutId = window.setTimeout(() => {
+      void loadUserDetail(selectedUserId);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadUserDetail, selectedUserId]);
 
   async function refreshUsers() {
@@ -370,10 +398,15 @@ export default function AdminUsersPage() {
     try {
       const response =
         action === "activate" || action === "deactivate"
-          ? await api.patch<AdminUserActionResponse>(`/admin/users/${user.user_id}/${action}`)
-          : await api.patch<AdminUserActionResponse>(`/admin/users/${user.user_id}/role`, {
-              role: action === "promote" ? "admin" : "user",
-            });
+          ? await api.patch<AdminUserActionResponse>(
+              `/admin/users/${user.user_id}/${action}`,
+            )
+          : await api.patch<AdminUserActionResponse>(
+              `/admin/users/${user.user_id}/role`,
+              {
+                role: action === "promote" ? "admin" : "user",
+              },
+            );
 
       setNotice(response.data.message);
       setSelectedUserId(response.data.user.user_id);
@@ -381,7 +414,12 @@ export default function AdminUsersPage() {
       setPendingAction(null);
       await loadUsers();
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Unable to update this user right now."));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to update this user right now.",
+        ),
+      );
     } finally {
       setActionUserId(null);
     }
@@ -407,7 +445,12 @@ export default function AdminUsersPage() {
       setActivity((current) => [...current, ...response.data]);
       setActivityHasMore(response.data.length === ACTIVITY_PAGE_SIZE);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Unable to load more user activity."));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to load more user activity.",
+        ),
+      );
     } finally {
       setLoadingMoreActivity(false);
     }
@@ -444,7 +487,9 @@ export default function AdminUsersPage() {
           <StatCard
             title="Active"
             value={loadingUsers ? "--" : stats.active}
-            detail={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% active`}
+            detail={`${
+              stats.total ? Math.round((stats.active / stats.total) * 100) : 0
+            }% active`}
             icon={UserCheck}
             accent="emerald"
             signal="Account status"
@@ -477,7 +522,11 @@ export default function AdminUsersPage() {
           }
           glow={error ? "rose" : "cyan"}
         >
-          <div className={`flex items-center gap-3 ${error ? "text-rose-100" : "text-emerald-100"}`}>
+          <div
+            className={`flex items-center gap-3 ${
+              error ? "text-rose-100" : "text-emerald-100"
+            }`}
+          >
             {error ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
             <p className="text-sm">{error || notice}</p>
           </div>
@@ -493,7 +542,9 @@ export default function AdminUsersPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-300">
                     User management
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">User list</h2>
+                  <h2 className="mt-2 text-2xl font-bold text-white">
+                    User list
+                  </h2>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -516,7 +567,10 @@ export default function AdminUsersPage() {
                     disabled={loadingUsers}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-teal-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <RefreshCw size={17} className={loadingUsers ? "animate-spin" : ""} />
+                    <RefreshCw
+                      size={17}
+                      className={loadingUsers ? "animate-spin" : ""}
+                    />
                     Refresh
                   </button>
                 </div>
@@ -598,14 +652,17 @@ export default function AdminUsersPage() {
                   <div className="divide-y divide-slate-800">
                     {users.map((user) => {
                       const isSelected = selectedUserId === user.user_id;
-                      const isCurrentAdmin = currentAdmin?.user_id === user.user_id;
+                      const isCurrentAdmin =
+                        currentAdmin?.user_id === user.user_id;
                       const actionLoading = actionUserId === user.user_id;
 
                       return (
                         <div
                           key={user.user_id}
                           className={`grid gap-4 p-4 transition lg:grid-cols-[1.4fr_0.9fr_0.8fr_0.9fr_0.75fr] lg:items-center lg:px-5 ${
-                            isSelected ? "bg-teal-500/[0.08]" : "hover:bg-slate-900/60"
+                            isSelected
+                              ? "bg-teal-500/[0.08]"
+                              : "hover:bg-slate-900/60"
                           }`}
                         >
                           <button
@@ -641,7 +698,11 @@ export default function AdminUsersPage() {
                                   : "border-teal-500/20 bg-teal-500/10 text-teal-200"
                               }`}
                             >
-                              {user.role === "admin" ? <Crown size={13} /> : <Users size={13} />}
+                              {user.role === "admin" ? (
+                                <Crown size={13} />
+                              ) : (
+                                <Users size={13} />
+                              )}
                               {user.role}
                             </span>
 
@@ -652,7 +713,11 @@ export default function AdminUsersPage() {
                                   : "border-amber-300/20 bg-amber-300/10 text-amber-200"
                               }`}
                             >
-                              {user.is_email_verified ? <MailCheck size={13} /> : <MailWarning size={13} />}
+                              {user.is_email_verified ? (
+                                <MailCheck size={13} />
+                              ) : (
+                                <MailWarning size={13} />
+                              )}
                               {user.is_email_verified ? "Verified" : "Unverified"}
                             </span>
                           </div>
@@ -680,24 +745,46 @@ export default function AdminUsersPage() {
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
                               onClick={() =>
-                                openUserAction(user, user.is_active ? "deactivate" : "activate")
+                                openUserAction(
+                                  user,
+                                  user.is_active ? "deactivate" : "activate",
+                                )
                               }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-teal-500/25 hover:text-teal-200 disabled:cursor-not-allowed disabled:opacity-40"
-                              aria-label={user.is_active ? `Deactivate ${user.username}` : `Activate ${user.username}`}
+                              aria-label={
+                                user.is_active
+                                  ? `Deactivate ${user.username}`
+                                  : `Activate ${user.username}`
+                              }
                             >
-                              {user.is_active ? <UserX size={16} /> : <Power size={16} />}
+                              {user.is_active ? (
+                                <UserX size={16} />
+                              ) : (
+                                <Power size={16} />
+                              )}
                             </button>
 
                             <button
                               type="button"
                               disabled={actionLoading || isCurrentAdmin}
                               onClick={() =>
-                                openUserAction(user, user.role === "admin" ? "demote" : "promote")
+                                openUserAction(
+                                  user,
+                                  user.role === "admin" ? "demote" : "promote",
+                                )
                               }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 transition hover:border-violet-500/25 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
-                              aria-label={user.role === "admin" ? `Demote ${user.username}` : `Promote ${user.username}`}
+                              aria-label={
+                                user.role === "admin"
+                                  ? `Demote ${user.username}`
+                                  : `Promote ${user.username}`
+                              }
                             >
-                              {user.role === "admin" ? <ShieldOff size={16} /> : <ShieldCheck size={16} />}
+                              {user.role === "admin" ? (
+                                <ShieldOff size={16} />
+                              ) : (
+                                <ShieldCheck size={16} />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -761,7 +848,9 @@ export default function AdminUsersPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   User detail
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-white">Account summary</h2>
+                <h2 className="mt-2 text-2xl font-bold text-white">
+                  Account summary
+                </h2>
               </div>
               <Activity size={22} className="text-teal-300" />
             </div>
@@ -785,7 +874,9 @@ export default function AdminUsersPage() {
                     {getDisplayName(selectedUser)}
                   </h3>
 
-                  <p className="mt-1 text-sm text-slate-400">@{selectedUser.username}</p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    @{selectedUser.username}
+                  </p>
 
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <StatusPill active={selectedUser.is_active}>
@@ -800,16 +891,33 @@ export default function AdminUsersPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Projects", value: selectedUser.counts.projects_created },
-                    { label: "Assigned", value: selectedUser.counts.assigned_tasks },
-                    { label: "Created", value: selectedUser.counts.created_tasks },
-                    { label: "Notices", value: selectedUser.counts.notifications },
+                    {
+                      label: "Projects",
+                      value: selectedUser.counts.projects_created,
+                    },
+                    {
+                      label: "Assigned",
+                      value: selectedUser.counts.assigned_tasks,
+                    },
+                    {
+                      label: "Created",
+                      value: selectedUser.counts.created_tasks,
+                    },
+                    {
+                      label: "Notices",
+                      value: selectedUser.counts.notifications,
+                    },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/35 p-4">
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-slate-800 bg-slate-950/35 p-4"
+                    >
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                         {item.label}
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                      <p className="mt-2 text-2xl font-semibold text-white">
+                        {item.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -834,7 +942,10 @@ export default function AdminUsersPage() {
                   ) : (
                     <>
                       {activity.map((event) => (
-                        <div key={event.activity_id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                        <div
+                          key={event.activity_id}
+                          className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
+                        >
                           <div className="flex items-start gap-3">
                             <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
                             <div className="min-w-0">
@@ -860,7 +971,11 @@ export default function AdminUsersPage() {
                           disabled={loadingMoreActivity}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {loadingMoreActivity ? <Loader2 size={16} className="animate-spin" /> : <Clock3 size={16} />}
+                          {loadingMoreActivity ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Clock3 size={16} />
+                          )}
                           Load more activity
                         </button>
                       )}
@@ -871,7 +986,9 @@ export default function AdminUsersPage() {
                 <div className="grid gap-3">
                   <button
                     type="button"
-                    disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
+                    disabled={
+                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                    }
                     onClick={() =>
                       openUserAction(
                         selectedUser,
@@ -885,7 +1002,9 @@ export default function AdminUsersPage() {
 
                   <button
                     type="button"
-                    disabled={Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)}
+                    disabled={
+                      Boolean(actionUserId) || Boolean(selectedIsCurrentAdmin)
+                    }
                     onClick={() =>
                       openUserAction(
                         selectedUser,
