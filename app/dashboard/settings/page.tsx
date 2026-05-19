@@ -9,6 +9,7 @@ import type {
   AdminDeviceToken,
   AdminNotificationPreference,
   AdminNotificationPreferenceKey,
+  AdminPushTestResponse,
   FirebasePushStatus,
 } from "@/types/admin";
 import {
@@ -23,6 +24,7 @@ import {
   Power,
   RefreshCw,
   Save,
+  Send,
   Server,
   ShieldCheck,
   Smartphone,
@@ -781,6 +783,13 @@ function PushNotificationSection() {
   const [deactivatingTokenId, setDeactivatingTokenId] = useState<number | null>(
     null,
   );
+  const [testTitle, setTestTitle] = useState("Planora test push");
+  const [testMessage, setTestMessage] = useState(
+    "This is a test push from the admin dashboard.",
+  );
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] =
+    useState<AdminPushTestResponse | null>(null);
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -890,6 +899,42 @@ function PushNotificationSection() {
       );
     } finally {
       setDeactivatingTokenId(null);
+    }
+  }
+
+  async function handleSendTestPush(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const cleanTitle = testTitle.trim();
+    const cleanMessage = testMessage.trim();
+
+    setError("");
+    setNotice("");
+    setTestResult(null);
+
+    if (!cleanTitle || !cleanMessage) {
+      setError("Test push title and message are required.");
+      return;
+    }
+
+    setIsSendingTest(true);
+
+    try {
+      const response = await api.post<AdminPushTestResponse>(
+        "/push-notifications/test",
+        {
+          title: cleanTitle,
+          message: cleanMessage,
+        },
+      );
+
+      setTestResult(response.data);
+      setNotice(response.data.detail);
+      window.setTimeout(() => setNotice(""), 2400);
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Unable to send test push."));
+    } finally {
+      setIsSendingTest(false);
     }
   }
 
@@ -1014,6 +1059,101 @@ function PushNotificationSection() {
               </p>
             </div>
           </div>
+
+          <form
+            onSubmit={handleSendTestPush}
+            className="rounded-2xl border border-slate-800 bg-slate-950/45 p-5"
+          >
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Send size={18} className="text-teal-300" />
+                  <h3 className="text-lg font-semibold text-white">
+                    Send test push
+                  </h3>
+                </div>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                  Sends a backend test push to this admin account using saved
+                  active device tokens and current preferences.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSendingTest}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-teal-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSendingTest ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <Send size={17} />
+                )}
+                Send test
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <label>
+                <span className="text-sm font-medium text-slate-300">
+                  Test title
+                </span>
+                <input
+                  value={testTitle}
+                  onChange={(event) => setTestTitle(event.target.value)}
+                  maxLength={150}
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+                  placeholder="Planora test push"
+                />
+              </label>
+
+              <label>
+                <span className="text-sm font-medium text-slate-300">
+                  Test message
+                </span>
+                <input
+                  value={testMessage}
+                  onChange={(event) => setTestMessage(event.target.value)}
+                  maxLength={500}
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+                  placeholder="This is a test push from the admin dashboard."
+                />
+              </label>
+            </div>
+
+            {testResult && (
+              <div className="mt-5 rounded-2xl border border-teal-500/20 bg-teal-500/10 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-teal-100">
+                    {testResult.status}
+                  </span>
+                  <span className="text-sm text-slate-300">
+                    {testResult.detail}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                  {[
+                    ["Sent", testResult.sent_count],
+                    ["Skipped", testResult.skipped_count],
+                    ["Failed", testResult.failed_count],
+                    ["Deactivated", testResult.deactivated_tokens],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-xl border border-slate-800 bg-slate-950/45 p-3"
+                    >
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                        {label}
+                      </p>
+                      <p className="mt-1 text-xl font-semibold text-white">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </form>
 
           <div>
             <div className="flex items-center gap-2">

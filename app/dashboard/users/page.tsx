@@ -16,9 +16,12 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Crown,
   Eye,
+  Loader2,
   MailCheck,
   MailWarning,
   Power,
@@ -70,6 +73,8 @@ const verificationOptions: Array<{
   { label: "Verified", value: "verified" },
   { label: "Unverified", value: "unverified" },
 ];
+
+const ACTIVITY_PAGE_SIZE = 6;
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -175,8 +180,13 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [verificationFilter, setVerificationFilter] =
     useState<VerificationFilter>("all");
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
+  const [activityHasMore, setActivityHasMore] = useState(false);
   const [actionUserId, setActionUserId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -214,7 +224,8 @@ export default function AdminUsersPage() {
         const response = await api.get<AdminUser[]>("/admin/users", {
           signal: controller.signal,
           params: {
-            limit: 100,
+            limit,
+            offset,
             role: roleFilter === "all" ? undefined : roleFilter,
             is_active:
               statusFilter === "all" ? undefined : statusFilter === "active",
@@ -231,6 +242,7 @@ export default function AdminUsersPage() {
         if (response.data.length === 0) {
           setSelectedUser(null);
           setActivity([]);
+          setActivityHasMore(false);
         }
 
         setSelectedUserId((current) => {
@@ -254,6 +266,7 @@ export default function AdminUsersPage() {
           setSelectedUserId(null);
           setSelectedUser(null);
           setActivity([]);
+          setActivityHasMore(false);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -268,7 +281,7 @@ export default function AdminUsersPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [roleFilter, search, statusFilter, verificationFilter]);
+  }, [limit, offset, roleFilter, search, statusFilter, verificationFilter]);
 
   useEffect(() => {
     if (!selectedUserId) {
@@ -279,6 +292,8 @@ export default function AdminUsersPage() {
 
     async function loadUserDetail() {
       setLoadingDetail(true);
+      setLoadingActivity(true);
+      setActivityHasMore(false);
 
       try {
         const [detailResponse, activityResponse] = await Promise.all([
@@ -289,13 +304,14 @@ export default function AdminUsersPage() {
             `/admin/users/${selectedUserId}/activity`,
             {
               signal: controller.signal,
-              params: { limit: 6 },
+              params: { limit: ACTIVITY_PAGE_SIZE, offset: 0 },
             },
           ),
         ]);
 
         setSelectedUser(detailResponse.data);
         setActivity(activityResponse.data);
+        setActivityHasMore(activityResponse.data.length === ACTIVITY_PAGE_SIZE);
       } catch (requestError) {
         if (!controller.signal.aborted) {
           setError(
@@ -306,10 +322,12 @@ export default function AdminUsersPage() {
           );
           setSelectedUser(null);
           setActivity([]);
+          setActivityHasMore(false);
         }
       } finally {
         if (!controller.signal.aborted) {
           setLoadingDetail(false);
+          setLoadingActivity(false);
         }
       }
     }
@@ -327,7 +345,8 @@ export default function AdminUsersPage() {
     try {
       const response = await api.get<AdminUser[]>("/admin/users", {
         params: {
-          limit: 100,
+          limit,
+          offset,
           role: roleFilter === "all" ? undefined : roleFilter,
           is_active:
             statusFilter === "all" ? undefined : statusFilter === "active",
@@ -345,6 +364,7 @@ export default function AdminUsersPage() {
         setSelectedUserId(null);
         setSelectedUser(null);
         setActivity([]);
+        setActivityHasMore(false);
       } else {
         setSelectedUserId((current) => {
           if (
@@ -402,6 +422,46 @@ export default function AdminUsersPage() {
     } finally {
       setActionUserId(null);
     }
+  }
+
+  async function handleLoadMoreActivity() {
+    if (!selectedUserId) return;
+
+    setLoadingMoreActivity(true);
+    setError("");
+
+    try {
+      const response = await api.get<AdminActivityLog[]>(
+        `/admin/users/${selectedUserId}/activity`,
+        {
+          params: {
+            limit: ACTIVITY_PAGE_SIZE,
+            offset: activity.length,
+          },
+        },
+      );
+
+      setActivity((current) => [...current, ...response.data]);
+      setActivityHasMore(response.data.length === ACTIVITY_PAGE_SIZE);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Unable to load more user activity.",
+        ),
+      );
+    } finally {
+      setLoadingMoreActivity(false);
+    }
+  }
+
+  function goToPreviousPage() {
+    setOffset((current) => Math.max(0, current - limit));
+  }
+
+  function goToNextPage() {
+    if (users.length < limit) return;
+    setOffset((current) => current + limit);
   }
 
   const selectedIsCurrentAdmin =
@@ -488,7 +548,10 @@ export default function AdminUsersPage() {
                     <Search size={18} className="shrink-0 text-slate-500" />
                     <input
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(event) => {
+                        setSearch(event.target.value);
+                        setOffset(0);
+                      }}
                       className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                       placeholder="Search name, username, email..."
                     />
@@ -517,7 +580,10 @@ export default function AdminUsersPage() {
                       label={option.label}
                       value={option.value}
                       current={roleFilter}
-                      onChange={setRoleFilter}
+                      onChange={(value) => {
+                        setRoleFilter(value);
+                        setOffset(0);
+                      }}
                     />
                   ))}
                 </div>
@@ -529,7 +595,10 @@ export default function AdminUsersPage() {
                       label={option.label}
                       value={option.value}
                       current={statusFilter}
-                      onChange={setStatusFilter}
+                      onChange={(value) => {
+                        setStatusFilter(value);
+                        setOffset(0);
+                      }}
                     />
                   ))}
                 </div>
@@ -541,7 +610,10 @@ export default function AdminUsersPage() {
                       label={option.label}
                       value={option.value}
                       current={verificationFilter}
-                      onChange={setVerificationFilter}
+                      onChange={(value) => {
+                        setVerificationFilter(value);
+                        setOffset(0);
+                      }}
                     />
                   ))}
                 </div>
@@ -725,6 +797,52 @@ export default function AdminUsersPage() {
                   </div>
                 )}
               </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4">
+                <label className="flex items-center gap-3 text-sm text-slate-400">
+                  Rows per page
+                  <select
+                    value={limit}
+                    onChange={(event) => {
+                      setLimit(Number(event.target.value));
+                      setOffset(0);
+                    }}
+                    className="h-10 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition focus:border-teal-500/60"
+                  >
+                    {[10, 20, 50, 100].map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <span className="rounded-xl border border-slate-800 bg-slate-950/45 px-3 py-2 text-sm text-slate-400">
+                    Offset {offset}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={goToPreviousPage}
+                    disabled={offset === 0 || loadingUsers}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goToNextPage}
+                    disabled={users.length < limit || loadingUsers}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
           </GlassCard>
 
@@ -814,33 +932,55 @@ export default function AdminUsersPage() {
                     Recent activity
                   </p>
 
-                  {activity.length === 0 ? (
+                  {loadingActivity ? (
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
+                      Loading user activity...
+                    </div>
+                  ) : activity.length === 0 ? (
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">
                       No recent activity found for this user.
                     </div>
                   ) : (
-                    activity.map((event) => (
-                      <div
-                        key={event.activity_id}
-                        className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-white">
-                              {event.event_type.replaceAll("_", " ")}
-                            </p>
-                            <p className="mt-1 text-sm leading-5 text-slate-400">
-                              {event.message}
-                            </p>
-                            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                              <Clock3 size={13} />
-                              {formatRelative(event.created_at)}
-                            </p>
+                    <>
+                      {activity.map((event) => (
+                        <div
+                          key={event.activity_id}
+                          className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1 h-2 w-2 rounded-full bg-teal-400" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white">
+                                {event.event_type.replaceAll("_", " ")}
+                              </p>
+                              <p className="mt-1 text-sm leading-5 text-slate-400">
+                                {event.message}
+                              </p>
+                              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                                <Clock3 size={13} />
+                                {formatRelative(event.created_at)}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+
+                      {activityHasMore && (
+                        <button
+                          type="button"
+                          onClick={() => void handleLoadMoreActivity()}
+                          disabled={loadingMoreActivity}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {loadingMoreActivity ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Clock3 size={16} />
+                          )}
+                          Load more activity
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
 

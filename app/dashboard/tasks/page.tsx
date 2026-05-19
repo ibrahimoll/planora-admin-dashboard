@@ -16,8 +16,11 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Clock3,
+  FilterX,
   FolderKanban,
   ListChecks,
   Loader2,
@@ -69,6 +72,14 @@ const taskStatusOptions: Array<{ label: string; value: AdminTaskStatus }> = [
 function getErrorMessage(error: unknown, fallback: string) {
   const apiError = error as ApiError;
   return apiError.response?.data?.detail ?? fallback;
+}
+
+function parseOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function formatDate(value: string | null) {
@@ -143,8 +154,13 @@ export default function AdminTasksPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [projectId, setProjectId] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [createdBy, setCreatedBy] = useState("");
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -188,10 +204,13 @@ export default function AdminTasksPage() {
     try {
       const response = await api.get<AdminTaskSummary[]>("/admin/tasks", {
         params: {
-          limit: 100,
-          offset: 0,
+          limit,
+          offset,
           status: statusFilter === "all" ? undefined : statusFilter,
           priority: priorityFilter === "all" ? undefined : priorityFilter,
+          project_id: parseOptionalNumber(projectId),
+          assigned_to: parseOptionalNumber(assignedTo),
+          created_by: parseOptionalNumber(createdBy),
           overdue: overdueOnly ? true : undefined,
           unassigned: unassignedOnly ? true : undefined,
           search: search.trim() || undefined,
@@ -204,7 +223,18 @@ export default function AdminTasksPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [overdueOnly, priorityFilter, search, statusFilter, unassignedOnly]);
+  }, [
+    assignedTo,
+    createdBy,
+    limit,
+    offset,
+    overdueOnly,
+    priorityFilter,
+    projectId,
+    search,
+    statusFilter,
+    unassignedOnly,
+  ]);
 
   const fetchTaskDetail = useCallback(async (taskId: number) => {
     setIsDetailLoading(true);
@@ -283,6 +313,27 @@ export default function AdminTasksPage() {
     } finally {
       setIsActionLoading(false);
     }
+  }
+
+  function resetFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setProjectId("");
+    setAssignedTo("");
+    setCreatedBy("");
+    setOverdueOnly(false);
+    setUnassignedOnly(false);
+    setOffset(0);
+  }
+
+  function goToPreviousPage() {
+    setOffset((current) => Math.max(0, current - limit));
+  }
+
+  function goToNextPage() {
+    if (tasks.length < limit) return;
+    setOffset((current) => current + limit);
   }
 
   return (
@@ -375,7 +426,7 @@ export default function AdminTasksPage() {
               </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="relative">
                 <Search
                   size={16}
@@ -383,7 +434,10 @@ export default function AdminTasksPage() {
                 />
                 <input
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setOffset(0);
+                  }}
                   placeholder="Search task title..."
                   className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
                 />
@@ -391,9 +445,10 @@ export default function AdminTasksPage() {
 
               <select
                 value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as StatusFilter)
-                }
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as StatusFilter);
+                  setOffset(0);
+                }}
                 className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition focus:border-teal-500/60"
               >
                 {statusOptions.map((option) => (
@@ -405,9 +460,10 @@ export default function AdminTasksPage() {
 
               <select
                 value={priorityFilter}
-                onChange={(event) =>
-                  setPriorityFilter(event.target.value as PriorityFilter)
-                }
+                onChange={(event) => {
+                  setPriorityFilter(event.target.value as PriorityFilter);
+                  setOffset(0);
+                }}
                 className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition focus:border-teal-500/60"
               >
                 {priorityOptions.map((option) => (
@@ -419,7 +475,10 @@ export default function AdminTasksPage() {
 
               <button
                 type="button"
-                onClick={() => setOverdueOnly((current) => !current)}
+                onClick={() => {
+                  setOverdueOnly((current) => !current);
+                  setOffset(0);
+                }}
                 className={`h-11 rounded-xl border px-3 text-sm font-medium transition ${
                   overdueOnly
                     ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
@@ -431,7 +490,10 @@ export default function AdminTasksPage() {
 
               <button
                 type="button"
-                onClick={() => setUnassignedOnly((current) => !current)}
+                onClick={() => {
+                  setUnassignedOnly((current) => !current);
+                  setOffset(0);
+                }}
                 className={`h-11 rounded-xl border px-3 text-sm font-medium transition ${
                   unassignedOnly
                     ? "border-violet-500/30 bg-violet-500/10 text-violet-100"
@@ -439,6 +501,48 @@ export default function AdminTasksPage() {
                 }`}
               >
                 Unassigned only
+              </button>
+
+              <input
+                value={projectId}
+                onChange={(event) => {
+                  setProjectId(event.target.value);
+                  setOffset(0);
+                }}
+                inputMode="numeric"
+                placeholder="Project ID"
+                className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+              />
+
+              <input
+                value={assignedTo}
+                onChange={(event) => {
+                  setAssignedTo(event.target.value);
+                  setOffset(0);
+                }}
+                inputMode="numeric"
+                placeholder="Assigned user ID"
+                className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+              />
+
+              <input
+                value={createdBy}
+                onChange={(event) => {
+                  setCreatedBy(event.target.value);
+                  setOffset(0);
+                }}
+                inputMode="numeric"
+                placeholder="Creator user ID"
+                className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+              />
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100"
+              >
+                <FilterX size={16} />
+                Reset
               </button>
             </div>
           </div>
@@ -576,6 +680,54 @@ export default function AdminTasksPage() {
               },
             )
           )}
+
+          <GlassCard className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-3 text-sm text-slate-400">
+                Rows per page
+                <select
+                  value={limit}
+                  onChange={(event) => {
+                    setLimit(Number(event.target.value));
+                    setOffset(0);
+                  }}
+                  className="h-10 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition focus:border-teal-500/60"
+                >
+                  {[10, 20, 50, 100].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-center gap-2">
+                <span className="rounded-xl border border-slate-800 bg-slate-950/45 px-3 py-2 text-sm text-slate-400">
+                  Offset {offset}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={goToPreviousPage}
+                  disabled={offset === 0 || isLoading}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToNextPage}
+                  disabled={tasks.length < limit || isLoading}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </GlassCard>
         </div>
 
         <GlassCard className="h-fit">

@@ -15,6 +15,9 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FilterX,
   FolderKanban,
   ListChecks,
   RefreshCw,
@@ -87,6 +90,14 @@ const typeOptions: Array<{ label: string; value: TypeFilter }> = [
 function getApiErrorMessage(error: unknown, fallback: string) {
   const detail = (error as ApiError).response?.data?.detail;
   return typeof detail === "string" ? detail : fallback;
+}
+
+function parseOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function formatDate(value: string) {
@@ -217,6 +228,10 @@ export default function AdminProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [ownerId, setOwnerId] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
   const [newStatus, setNewStatus] = useState<AdminProjectStatus>("not_started");
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -242,11 +257,13 @@ export default function AdminProjectsPage() {
   async function fetchProjects() {
     const response = await api.get<AdminProjectSummary[]>("/admin/projects", {
       params: {
-        limit: 100,
-        offset: 0,
+        limit,
+        offset,
         search: search.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
         project_type: typeFilter === "all" ? undefined : typeFilter,
+        owner_id: parseOptionalNumber(ownerId),
+        team_id: parseOptionalNumber(teamId),
       },
     });
 
@@ -263,7 +280,10 @@ export default function AdminProjectsPage() {
       setProjects(data);
 
       setSelectedProjectId((current) => {
-        if (data.length === 0) return null;
+        if (data.length === 0) {
+          setSelectedProject(null);
+          return null;
+        }
 
         if (current && data.some((project) => project.project_id === current)) {
           return current;
@@ -296,11 +316,13 @@ export default function AdminProjectsPage() {
           {
             signal: controller.signal,
             params: {
-              limit: 100,
-              offset: 0,
+              limit,
+              offset,
               search: search.trim() || undefined,
               status: statusFilter === "all" ? undefined : statusFilter,
               project_type: typeFilter === "all" ? undefined : typeFilter,
+              owner_id: parseOptionalNumber(ownerId),
+              team_id: parseOptionalNumber(teamId),
             },
           },
         );
@@ -348,7 +370,7 @@ export default function AdminProjectsPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [search, statusFilter, typeFilter]);
+  }, [limit, offset, ownerId, search, statusFilter, teamId, typeFilter]);
 
   useEffect(() => {
     if (!selectedProjectId) return;
@@ -419,6 +441,24 @@ export default function AdminProjectsPage() {
     }
   }
 
+  function resetFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setOwnerId("");
+    setTeamId("");
+    setOffset(0);
+  }
+
+  function goToPreviousPage() {
+    setOffset((current) => Math.max(0, current - limit));
+  }
+
+  function goToNextPage() {
+    if (projects.length < limit) return;
+    setOffset((current) => current + limit);
+  }
+
   return (
     <PageTransition className="space-y-6 pb-10">
       {(error || notice) && (
@@ -464,7 +504,10 @@ export default function AdminProjectsPage() {
                     <Search size={18} className="shrink-0 text-slate-500" />
                     <input
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(event) => {
+                        setSearch(event.target.value);
+                        setOffset(0);
+                      }}
                       className="w-full min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                       placeholder="Search title or description..."
                     />
@@ -493,7 +536,10 @@ export default function AdminProjectsPage() {
                       label={option.label}
                       value={option.value}
                       current={statusFilter}
-                      onChange={setStatusFilter}
+                      onChange={(value) => {
+                        setStatusFilter(value);
+                        setOffset(0);
+                      }}
                     />
                   ))}
                 </div>
@@ -510,10 +556,56 @@ export default function AdminProjectsPage() {
                       label={option.label}
                       value={option.value}
                       current={typeFilter}
-                      onChange={setTypeFilter}
+                      onChange={(value) => {
+                        setTypeFilter(value);
+                        setOffset(0);
+                      }}
                     />
                   ))}
                 </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <label>
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Owner ID
+                  </span>
+                  <input
+                    value={ownerId}
+                    onChange={(event) => {
+                      setOwnerId(event.target.value);
+                      setOffset(0);
+                    }}
+                    inputMode="numeric"
+                    placeholder="Optional owner user ID"
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Team ID
+                  </span>
+                  <input
+                    value={teamId}
+                    onChange={(event) => {
+                      setTeamId(event.target.value);
+                      setOffset(0);
+                    }}
+                    inputMode="numeric"
+                    placeholder="Optional team ID"
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-800 bg-slate-950/45 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-500/60"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl border border-slate-800 bg-slate-950/45 px-4 text-sm font-semibold text-slate-300 transition hover:border-teal-500/30 hover:text-teal-100"
+                >
+                  <FilterX size={16} />
+                  Reset filters
+                </button>
               </div>
 
               {loadingProjects ? (
@@ -673,6 +765,52 @@ export default function AdminProjectsPage() {
                   ))}
                 </div>
               )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4">
+                <label className="flex items-center gap-3 text-sm text-slate-400">
+                  Rows per page
+                  <select
+                    value={limit}
+                    onChange={(event) => {
+                      setLimit(Number(event.target.value));
+                      setOffset(0);
+                    }}
+                    className="h-10 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none transition focus:border-teal-500/60"
+                  >
+                    {[10, 20, 50, 100].map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <span className="rounded-xl border border-slate-800 bg-slate-950/45 px-3 py-2 text-sm text-slate-400">
+                    Offset {offset}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={goToPreviousPage}
+                    disabled={offset === 0 || loadingProjects}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goToNextPage}
+                    disabled={projects.length < limit || loadingProjects}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-medium text-slate-300 transition hover:border-teal-500/40 hover:text-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
           </GlassCard>
 

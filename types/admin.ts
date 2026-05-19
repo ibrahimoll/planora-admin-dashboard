@@ -50,6 +50,11 @@ export type AdminDashboardOverview = {
   generated_at: string;
 };
 
+export type AdminPaginationState = {
+  limit: number;
+  offset: number;
+};
+
 export type AdminUser = {
   user_id: number;
   username: string;
@@ -403,6 +408,15 @@ export type AdminDeviceToken = {
   is_active: boolean;
   last_used_at: string;
   created_at: string;
+};
+
+export type AdminPushTestResponse = {
+  status: string;
+  detail: string;
+  sent_count: number;
+  skipped_count: number;
+  failed_count: number;
+  deactivated_tokens: number;
 };
 
 export type AdminSystemSummaryReport = {
