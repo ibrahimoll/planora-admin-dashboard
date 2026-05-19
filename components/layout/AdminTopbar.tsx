@@ -328,7 +328,7 @@ export default function AdminTopbar({
               <PanelLeftClose size={22} />
             ) : (
               <PanelLeftOpen size={22} />
-            )}{" "}
+            )}
           </span>
         </button>
 
