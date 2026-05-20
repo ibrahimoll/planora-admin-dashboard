@@ -1,11 +1,11 @@
-import axios from "axios";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
+import axios from "axios";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://192.168.0.110:8000";
+  "http://192.168.0.104:8000";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
