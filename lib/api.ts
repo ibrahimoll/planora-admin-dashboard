@@ -14,6 +14,19 @@ export const api = axios.create({
   },
 });
 
+function shouldUnwrapPaginatedAdminList(url: string | undefined) {
+  if (!url) return false;
+
+  const normalizedUrl = url.split("?")[0];
+
+  return [
+    "/admin/users",
+    "/admin/projects",
+    "/admin/tasks",
+    "/admin/logs",
+  ].includes(normalizedUrl);
+}
+
 api.interceptors.request.use((config) => {
   if (typeof window === "undefined") return config;
 
@@ -27,7 +40,21 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const data = response.data as unknown;
+
+    if (
+      shouldUnwrapPaginatedAdminList(response.config.url) &&
+      data &&
+      typeof data === "object" &&
+      "items" in data &&
+      Array.isArray((data as { items?: unknown }).items)
+    ) {
+      response.data = (data as { items: unknown[] }).items;
+    }
+
+    return response;
+  },
   (error) => {
     if (typeof window !== "undefined" && axios.isAxiosError(error)) {
       const status = error.response?.status;
