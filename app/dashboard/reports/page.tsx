@@ -41,6 +41,13 @@ type ApiError = {
   };
 };
 
+type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 const reportTabs: Array<{
   label: string;
   value: ReportTab;
@@ -143,6 +150,16 @@ function ReportMetricRow({
   );
 }
 
+function ErrorBanner({ message }: { message: string }) {
+  if (!message) return null;
+
+  return (
+    <div className="print-hide rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+      {message}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState<ReportTab>("system");
 
@@ -164,7 +181,9 @@ export default function AdminReportsPage() {
   const [loadingSummaries, setLoadingSummaries] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingProjectReport, setLoadingProjectReport] = useState(false);
-  const [error, setError] = useState("");
+  const [summaryError, setSummaryError] = useState("");
+  const [projectListError, setProjectListError] = useState("");
+  const [projectReportError, setProjectReportError] = useState("");
 
   const filteredProjects = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -188,7 +207,7 @@ export default function AdminReportsPage() {
 
   const loadAdminSummaries = useCallback(async () => {
     setLoadingSummaries(true);
-    setError("");
+    setSummaryError("");
 
     try {
       const [systemResponse, projectsResponse, usersResponse] =
@@ -204,7 +223,7 @@ export default function AdminReportsPage() {
       setProjectsSummary(projectsResponse.data);
       setUsersSummary(usersResponse.data);
     } catch (requestError) {
-      setError(
+      setSummaryError(
         getApiErrorMessage(
           requestError,
           "Unable to load admin summary reports.",
@@ -217,25 +236,34 @@ export default function AdminReportsPage() {
 
   const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
-    setError("");
+    setProjectListError("");
 
     try {
-      const response = await api.get<AdminProjectSummary[]>("/admin/projects", {
-        params: {
-          limit: 100,
-          offset: 0,
+      const response = await api.get<PaginatedResponse<AdminProjectSummary>>(
+        "/admin/projects",
+        {
+          params: {
+            limit: 100,
+            offset: 0,
+          },
         },
+      );
+
+      const nextProjects = response.data.items;
+      setProjects(nextProjects);
+
+      setSelectedProjectId((current) => {
+        if (current && nextProjects.some((project) => project.project_id === current)) {
+          return current;
+        }
+
+        return nextProjects[0]?.project_id ?? null;
       });
-
-      setProjects(response.data);
-
-      if (response.data.length > 0) {
-        setSelectedProjectId(
-          (current) => current ?? response.data[0].project_id,
-        );
-      }
     } catch (requestError) {
-      setError(
+      setProjects([]);
+      setSelectedProjectId(null);
+      setProjectReport(null);
+      setProjectListError(
         getApiErrorMessage(
           requestError,
           "Unable to load projects for reports.",
@@ -248,7 +276,7 @@ export default function AdminReportsPage() {
 
   const loadProjectReport = useCallback(async (projectId: number) => {
     setLoadingProjectReport(true);
-    setError("");
+    setProjectReportError("");
 
     try {
       const response = await api.get<AdminProjectReportResponse>(
@@ -258,7 +286,7 @@ export default function AdminReportsPage() {
       setProjectReport(response.data);
     } catch (requestError) {
       setProjectReport(null);
-      setError(
+      setProjectReportError(
         getApiErrorMessage(
           requestError,
           "Unable to generate this project report.",
@@ -280,17 +308,18 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      if (selectedProjectId) {
+      if (activeTab === "project" && selectedProjectId) {
         void loadProjectReport(selectedProjectId);
       }
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [loadProjectReport, selectedProjectId]);
+  }, [activeTab, loadProjectReport, selectedProjectId]);
 
   function handlePrintReport() {
     if (!projectReport) {
-      setError("Generate a project report before exporting.");
+      setActiveTab("project");
+      setProjectReportError("Generate a project report before exporting.");
       return;
     }
 
@@ -301,7 +330,7 @@ export default function AdminReportsPage() {
     void loadAdminSummaries();
     void loadProjects();
 
-    if (selectedProjectId) {
+    if (activeTab === "project" && selectedProjectId) {
       void loadProjectReport(selectedProjectId);
     }
   }
@@ -404,11 +433,7 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="print-hide rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          {error}
-        </div>
-      )}
+      <ErrorBanner message={summaryError} />
 
       <Reveal className="print-hide">
         <GlassCard className="p-3">
@@ -468,6 +493,8 @@ export default function AdminReportsPage() {
           loadingProjects={loadingProjects}
           loadingReport={loadingProjectReport}
           progressPercent={progressPercent}
+          projectListError={projectListError}
+          projectReportError={projectReportError}
         />
       )}
     </PageTransition>
@@ -779,6 +806,8 @@ function ProjectReportTab({
   loadingProjects,
   loadingReport,
   progressPercent,
+  projectListError,
+  projectReportError,
 }: {
   projects: AdminProjectSummary[];
   selectedProjectId: number | null;
@@ -789,9 +818,13 @@ function ProjectReportTab({
   loadingProjects: boolean;
   loadingReport: boolean;
   progressPercent: number;
+  projectListError: string;
+  projectReportError: string;
 }) {
   return (
     <div className="print-report space-y-6">
+      <ErrorBanner message={projectListError || projectReportError} />
+
       <div className="print-hide">
         <Reveal>
           <GlassCard>
