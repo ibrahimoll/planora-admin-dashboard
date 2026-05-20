@@ -48,6 +48,10 @@ type PaginatedResponse<T> = {
   offset: number;
 };
 
+type AdminProjectListResponse =
+  | AdminProjectSummary[]
+  | PaginatedResponse<AdminProjectSummary>;
+
 const reportTabs: Array<{
   label: string;
   value: ReportTab;
@@ -62,6 +66,14 @@ const reportTabs: Array<{
 function getApiErrorMessage(error: unknown, fallback: string) {
   const detail = (error as ApiError).response?.data?.detail;
   return typeof detail === "string" ? detail : fallback;
+}
+
+function getProjectItems(data: AdminProjectListResponse): AdminProjectSummary[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 function formatDate(value: string | null | undefined) {
@@ -239,7 +251,7 @@ export default function AdminReportsPage() {
     setProjectListError("");
 
     try {
-      const response = await api.get<PaginatedResponse<AdminProjectSummary>>(
+      const response = await api.get<AdminProjectListResponse>(
         "/admin/projects",
         {
           params: {
@@ -249,7 +261,7 @@ export default function AdminReportsPage() {
         },
       );
 
-      const nextProjects = response.data.items;
+      const nextProjects = getProjectItems(response.data);
       setProjects(nextProjects);
 
       setSelectedProjectId((current) => {
