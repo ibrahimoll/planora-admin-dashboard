@@ -11,7 +11,11 @@ import {
   type AdminUser,
 } from "@/lib/adminProfileSync";
 import { api } from "@/lib/api";
-import { clearAdminToken } from "@/lib/auth";
+import {
+  clearAdminDeviceTokenId,
+  clearAdminToken,
+  getAdminDeviceTokenId,
+} from "@/lib/auth";
 import {
   ADMIN_NOTIFICATIONS_UPDATED_EVENT,
   dispatchAdminNotificationsUpdated,
@@ -309,7 +313,20 @@ export default function AdminTopbar({
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    const deviceTokenId = getAdminDeviceTokenId();
+
+    if (deviceTokenId) {
+      try {
+        await api.patch(
+          `/push-notifications/device-tokens/${deviceTokenId}/deactivate`,
+        );
+      } catch {
+      }
+
+      clearAdminDeviceTokenId();
+    }
+
     clearAdminToken();
     router.replace("/login");
   }

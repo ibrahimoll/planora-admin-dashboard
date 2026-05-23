@@ -1,11 +1,10 @@
 "use client";
-
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Reveal } from "@/components/ui/Reveal";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
 import { API_BASE_URL, api } from "@/lib/api";
-import { clearAdminToken } from "@/lib/auth";
+import { clearAdminToken, saveAdminDeviceTokenId } from "@/lib/auth";
 import { registerBrowserFcmToken } from "@/lib/firebaseClient";
 import type {
   AdminDeviceToken,
@@ -1046,10 +1045,7 @@ function PushNotificationSection() {
         platform: "web",
       });
 
-      localStorage.setItem(
-        "planora_admin_device_token_id",
-        String(response.data.device_token_id),
-      );
+      saveAdminDeviceTokenId(response.data.device_token_id);
 
       setNotice("This browser was registered for push notifications.");
       await loadPushSettings();
