@@ -1,20 +1,24 @@
-
-importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js",
+);
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js",
+);
 
 firebase.initializeApp({
-  apiKey: "your_apiKey",
-  authDomain: "your_authDomain",
-  projectId: "your_projectId",
-  storageBucket: "your_storageBucket",
-  messagingSenderId: "your_messagingSenderId",
-  appId: "your_appId",
+  apiKey: "AIzaSyBdr6C8WSs4kOniyTog-NkostDDK0nNI1k",
+  authDomain: "planora-7a684.firebaseapp.com",
+  projectId: "planora-7a684",
+  storageBucket: "planora-7a684.firebasestorage.app",
+  messagingSenderId: "G-9LVRS7MT84",
+  appId: "1:179943761921:web:7461be36a0dbec1a697800",
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || "Planora";
+
   const options = {
     body: payload.notification?.body || payload.data?.message || "",
     icon: "/favicon.ico",
@@ -27,7 +31,5 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  event.waitUntil(
-    clients.openWindow("/dashboard/notifications"),
-  );
+  event.waitUntil(clients.openWindow("/dashboard/notifications"));
 });
