@@ -5,7 +5,11 @@ import { Reveal } from "@/components/ui/Reveal";
 import { saveAdminProfile } from "@/lib/adminProfileSync";
 import { API_BASE_URL, api } from "@/lib/api";
 import { clearAdminToken, saveAdminDeviceTokenId } from "@/lib/auth";
-import { registerBrowserFcmToken } from "@/lib/firebaseClient";
+import {
+  getBrowserDeviceKey,
+  registerBrowserFcmToken,
+} from "@/lib/firebaseClient";
+
 import type {
   AdminDeviceToken,
   AdminNotificationPreference,
@@ -1039,10 +1043,12 @@ function PushNotificationSection() {
 
     try {
       const token = await registerBrowserFcmToken();
+      const deviceKey = getBrowserDeviceKey();
 
       const response = await api.post("/push-notifications/device-tokens", {
         token,
         platform: "web",
+        device_key: deviceKey,
       });
 
       saveAdminDeviceTokenId(response.data.device_token_id);

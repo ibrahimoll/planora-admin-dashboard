@@ -322,6 +322,7 @@ export default function AdminTopbar({
           `/push-notifications/device-tokens/${deviceTokenId}/deactivate`,
         );
       } catch {
+        // Continue logout even if push-token cleanup fails.
       }
 
       clearAdminDeviceTokenId();

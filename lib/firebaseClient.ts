@@ -51,3 +51,19 @@ export async function registerBrowserFcmToken() {
 
   return token;
 }
+
+export function getBrowserDeviceKey() {
+  if (typeof window === "undefined") {
+    throw new Error("Device key can only run in the browser.");
+  }
+
+  const storageKey = "planora_admin_browser_device_key";
+  const existing = localStorage.getItem(storageKey);
+
+  if (existing) return existing;
+
+  const created = crypto.randomUUID();
+  localStorage.setItem(storageKey, created);
+
+  return created;
+}
