@@ -17,11 +17,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "Planora";
+  const title = payload.data?.title || "Planora";
 
   const options = {
-    body: payload.notification?.body || payload.data?.message || "",
+    body: payload.data?.message || "",
     icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
     data: payload.data || {},
   };
 
