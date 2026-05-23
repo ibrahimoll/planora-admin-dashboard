@@ -21,7 +21,7 @@ messaging.onBackgroundMessage((payload) => {
 
   const options = {
     body: payload.notification?.body || payload.data?.message || "",
-    icon: "/favicon.ico",
+    icon: "/icons/icon-192.png",
     data: payload.data || {},
   };
 

@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   description: "Planora admin operations dashboard",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icons/icon.svg",
+    shortcut: "/icons/icon.svg",
+    apple: "/icons/icon-192.png",
   },
 };
 
