@@ -241,6 +241,30 @@ export default function AdminTopbar({
     };
   }, [notificationsOpen, profileOpen]);
 
+  useEffect(() => {
+    async function sendHeartbeat() {
+      try {
+        const deviceTokenId = getAdminDeviceTokenId();
+        const deviceKey = getBrowserDeviceKey();
+
+        await api.patch("/push-notifications/device-tokens/current/heartbeat", {
+          device_token_id: deviceTokenId ? Number(deviceTokenId) : null,
+          device_key: deviceKey,
+        });
+      } catch {
+        // Ignore heartbeat failures.
+      }
+    }
+
+    void sendHeartbeat();
+
+    const intervalId = window.setInterval(() => {
+      void sendHeartbeat();
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const filteredTargets = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
