@@ -16,6 +16,7 @@ import {
   clearAdminToken,
   getAdminDeviceTokenId,
 } from "@/lib/auth";
+import { getBrowserDeviceKey } from "@/lib/firebaseClient";
 import {
   ADMIN_NOTIFICATIONS_UPDATED_EVENT,
   dispatchAdminNotificationsUpdated,
@@ -316,18 +317,18 @@ export default function AdminTopbar({
   async function handleLogout() {
     const deviceTokenId = getAdminDeviceTokenId();
 
-    if (deviceTokenId) {
-      try {
-        await api.patch(
-          `/push-notifications/device-tokens/${deviceTokenId}/deactivate`,
-        );
-      } catch {
-        // Continue logout even if push-token cleanup fails.
-      }
+    try {
+      const deviceKey = getBrowserDeviceKey();
 
-      clearAdminDeviceTokenId();
+      await api.patch("/push-notifications/device-tokens/current/deactivate", {
+        device_token_id: deviceTokenId ? Number(deviceTokenId) : null,
+        device_key: deviceKey,
+      });
+    } catch {
+      // Continue logout even if push-token cleanup fails.
     }
 
+    clearAdminDeviceTokenId();
     clearAdminToken();
     router.replace("/login");
   }
