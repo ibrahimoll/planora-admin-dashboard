@@ -1,4 +1,5 @@
 const ADMIN_TOKEN_KEY = "planora_admin_token";
+const ADMIN_DEVICE_TOKEN_ID_KEY = "planora_admin_device_token_id";
 
 export function saveAdminToken(token: string) {
   if (typeof window === "undefined") return;
@@ -13,6 +14,21 @@ export function getAdminToken() {
 export function clearAdminToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ADMIN_TOKEN_KEY);
+}
+
+export function saveAdminDeviceTokenId(deviceTokenId: number | string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ADMIN_DEVICE_TOKEN_ID_KEY, String(deviceTokenId));
+}
+
+export function getAdminDeviceTokenId() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ADMIN_DEVICE_TOKEN_ID_KEY);
+}
+
+export function clearAdminDeviceTokenId() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ADMIN_DEVICE_TOKEN_ID_KEY);
 }
 
 export function hasAdminToken() {

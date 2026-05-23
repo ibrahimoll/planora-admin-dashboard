@@ -1041,10 +1041,15 @@ function PushNotificationSection() {
     try {
       const token = await registerBrowserFcmToken();
 
-      await api.post("/push-notifications/device-tokens", {
+      const response = await api.post("/push-notifications/device-tokens", {
         token,
         platform: "web",
       });
+
+      localStorage.setItem(
+        "planora_admin_device_token_id",
+        String(response.data.device_token_id),
+      );
 
       setNotice("This browser was registered for push notifications.");
       await loadPushSettings();
