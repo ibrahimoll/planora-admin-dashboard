@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { getLoginErrorMessage } from "@/lib/auth-errors";
 import { clearAdminToken, getAdminToken, saveAdminToken } from "@/lib/auth";
 import { saveAdminProfile, type AdminUser } from "@/lib/adminProfileSync";
+import { registerCurrentBrowserForPush } from "@/lib/registerPushToken";
 
 type LoginResponse = {
   access_token: string;
@@ -131,6 +132,7 @@ export default function LoginPage() {
       }
 
       saveAdminProfile(meResponse.data);
+      void registerCurrentBrowserForPush();
       router.replace("/dashboard");
     } catch (loginError) {
       clearAdminToken();

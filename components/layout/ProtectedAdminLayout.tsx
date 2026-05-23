@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
+import { registerCurrentBrowserForPush } from "@/lib/registerPushToken";
 
 type CurrentUser = {
   role: "user" | "admin";
@@ -54,6 +55,7 @@ export default function ProtectedAdminLayout({
         }
 
         if (isMounted) {
+          void registerCurrentBrowserForPush();
           setCheckingAuth(false);
         }
       } catch {

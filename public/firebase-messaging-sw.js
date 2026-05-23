@@ -10,7 +10,7 @@ firebase.initializeApp({
   authDomain: "planora-7a684.firebaseapp.com",
   projectId: "planora-7a684",
   storageBucket: "planora-7a684.firebasestorage.app",
-  messagingSenderId: "G-9LVRS7MT84",
+  messagingSenderId: "179943761921",
   appId: "1:179943761921:web:7461be36a0dbec1a697800",
 });
 
