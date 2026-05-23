@@ -4,6 +4,7 @@
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
   buildProfileImageUrl,
+  clearAdminProfile,
   getAdminDisplayName,
   getAdminInitials,
   getSavedAdminProfile,
@@ -245,10 +246,15 @@ export default function AdminTopbar({
     async function sendHeartbeat() {
       try {
         const deviceTokenId = getAdminDeviceTokenId();
+        if (!deviceTokenId) return;
+
+        const parsedDeviceTokenId = Number(deviceTokenId);
+        if (!Number.isFinite(parsedDeviceTokenId)) return;
+
         const deviceKey = getBrowserDeviceKey();
 
         await api.patch("/push-notifications/device-tokens/current/heartbeat", {
-          device_token_id: deviceTokenId ? Number(deviceTokenId) : null,
+          device_token_id: parsedDeviceTokenId,
           device_key: deviceKey,
         });
       } catch {
@@ -354,6 +360,7 @@ export default function AdminTopbar({
 
     clearAdminDeviceTokenId();
     clearAdminToken();
+    clearAdminProfile();
     router.replace("/login");
   }
 

@@ -1,3 +1,4 @@
+import { clearAdminProfile } from "@/lib/adminProfileSync";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
 import axios from "axios";
 
@@ -73,6 +74,7 @@ api.interceptors.response.use(
         !isLoginPage
       ) {
         clearAdminToken();
+        clearAdminProfile();
         window.location.assign("/login");
       }
     }

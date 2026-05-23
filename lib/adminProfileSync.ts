@@ -31,6 +31,22 @@ export function saveAdminProfile(adminUser: AdminUser) {
   );
 }
 
+export function clearAdminProfile() {
+  if (typeof window === "undefined") return;
+
+  const possibleKeys = [
+    ADMIN_PROFILE_STORAGE_KEY,
+    "admin_user",
+    "current_user",
+    "user",
+    "planora_user",
+  ];
+
+  for (const key of possibleKeys) {
+    localStorage.removeItem(key);
+  }
+}
+
 export function getSavedAdminProfile(): AdminUser | null {
   if (typeof window === "undefined") return null;
 

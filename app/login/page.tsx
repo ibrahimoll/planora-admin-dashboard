@@ -10,7 +10,11 @@ import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
 import { api } from "@/lib/api";
 import { getLoginErrorMessage } from "@/lib/auth-errors";
 import { clearAdminToken, getAdminToken, saveAdminToken } from "@/lib/auth";
-import { saveAdminProfile, type AdminUser } from "@/lib/adminProfileSync";
+import {
+  clearAdminProfile,
+  saveAdminProfile,
+  type AdminUser,
+} from "@/lib/adminProfileSync";
 import { registerCurrentBrowserForPush } from "@/lib/registerPushToken";
 
 type LoginResponse = {
@@ -63,8 +67,10 @@ export default function LoginPage() {
         }
 
         clearAdminToken();
+        clearAdminProfile();
       } catch {
         clearAdminToken();
+        clearAdminProfile();
       }
 
       if (isMounted) setCheckingSession(false);
@@ -121,12 +127,14 @@ export default function LoginPage() {
 
       if (meResponse.data.role !== "admin") {
         clearAdminToken();
+        clearAdminProfile();
         setError("This account is not an admin account.");
         return;
       }
 
       if (!isActiveAdmin(meResponse.data)) {
         clearAdminToken();
+        clearAdminProfile();
         setError("This admin account is not active or verified.");
         return;
       }
@@ -136,6 +144,7 @@ export default function LoginPage() {
       router.replace("/dashboard");
     } catch (loginError) {
       clearAdminToken();
+      clearAdminProfile();
       setError(getLoginErrorMessage(loginError));
     } finally {
       setLoading(false);

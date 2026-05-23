@@ -1,6 +1,7 @@
 "use client";
 
 import { PlanoraLoader } from "@/components/ui/PlanoraLoader";
+import { clearAdminProfile } from "@/lib/adminProfileSync";
 import { api } from "@/lib/api";
 import { clearAdminToken, getAdminToken } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -50,6 +51,7 @@ export default function ProtectedAdminLayout({
 
         if (!isActiveAdmin(response.data)) {
           clearAdminToken();
+          clearAdminProfile();
           router.replace("/login");
           return;
         }
@@ -60,6 +62,7 @@ export default function ProtectedAdminLayout({
         }
       } catch {
         clearAdminToken();
+        clearAdminProfile();
         router.replace("/login");
       }
     }

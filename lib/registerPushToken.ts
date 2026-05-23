@@ -1,22 +1,9 @@
 import { api } from "@/lib/api";
-import { registerBrowserFcmToken } from "@/lib/firebaseClient";
-
-const BROWSER_DEVICE_KEY = "planora_browser_device_key";
-
-function getBrowserDeviceKey() {
-  let deviceKey = localStorage.getItem(BROWSER_DEVICE_KEY);
-
-  if (!deviceKey) {
-    deviceKey =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    localStorage.setItem(BROWSER_DEVICE_KEY, deviceKey);
-  }
-
-  return deviceKey;
-}
+import { saveAdminDeviceTokenId } from "@/lib/auth";
+import {
+  getBrowserDeviceKey,
+  registerBrowserFcmToken,
+} from "@/lib/firebaseClient";
 
 export async function registerCurrentBrowserForPush() {
   try {
@@ -29,11 +16,16 @@ export async function registerCurrentBrowserForPush() {
     const token = await registerBrowserFcmToken();
     const deviceKey = getBrowserDeviceKey();
 
-    await api.post("/push-notifications/device-tokens", {
-      token,
-      platform: "web",
-      device_key: deviceKey,
-    });
+    const response = await api.post<{ device_token_id: number }>(
+      "/push-notifications/device-tokens",
+      {
+        token,
+        platform: "web",
+        device_key: deviceKey,
+      },
+    );
+
+    saveAdminDeviceTokenId(response.data.device_token_id);
   } catch (error) {
     console.warn("Push registration skipped:", error);
   }
