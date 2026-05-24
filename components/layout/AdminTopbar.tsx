@@ -468,9 +468,9 @@ export default function AdminTopbar({
             </button>
 
             {notificationsOpen ? (
-              <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[calc(100vw-2rem)] max-w-96 overflow-hidden rounded-2xl border border-[#1d2942] bg-[#0d1424]/98 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-[planoraDropdownIn_180ms_ease-out]">
-                <div className="flex items-center justify-between gap-4 border-b border-[#1d2942] px-4 py-3">
-                  <div>
+              <div className="fixed left-4 right-4 top-[5.5rem] z-50 overflow-hidden rounded-2xl border border-[#1d2942] bg-[#0d1424]/98 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-[planoraDropdownIn_180ms_ease-out] sm:left-6 sm:right-6 lg:absolute lg:left-auto lg:right-0 lg:top-[calc(100%+12px)] lg:w-96">
+                <div className="flex items-center justify-between gap-2 border-b border-[#1d2942] px-3 py-3 sm:gap-4 sm:px-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-white">
                       Notifications
                     </p>
@@ -487,7 +487,7 @@ export default function AdminTopbar({
                     <button
                       type="button"
                       onClick={() => goToRoute("/dashboard/notifications")}
-                      className="rounded-xl border border-[#1d2942] px-3 py-2 text-xs font-semibold text-[#d8e2f5] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 hover:text-[#20d6c7]"
+                      className="rounded-xl border border-[#1d2942] px-2.5 py-2 text-xs font-semibold text-[#d8e2f5] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 hover:text-[#20d6c7] sm:px-3"
                     >
                       View all
                     </button>
@@ -500,7 +500,7 @@ export default function AdminTopbar({
                         notifications.length === 0 ||
                         unreadCount === 0
                       }
-                      className="rounded-xl border border-[#1d2942] px-3 py-2 text-xs font-semibold text-[#20d6c7] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-xl border border-[#1d2942] px-2.5 py-2 text-xs font-semibold text-[#20d6c7] transition hover:border-[#20d6c7]/50 hover:bg-[#20d6c7]/10 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
                     >
                       Mark all read
                     </button>
