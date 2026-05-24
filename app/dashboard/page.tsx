@@ -140,6 +140,11 @@ type TooltipPayload = {
   };
 };
 
+const CHART_INITIAL_DIMENSION = {
+  width: 360,
+  height: 260,
+};
+
 function formatCount(value: number | undefined) {
   return (value ?? 0).toLocaleString();
 }
@@ -314,7 +319,11 @@ function DonutChartBlock({
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={CHART_INITIAL_DIMENSION}
+          >
             <PieChart>
               {!isEmpty && <Tooltip content={<ChartTooltip />} />}
               <Pie
@@ -370,7 +379,11 @@ function BarChartBlock({ data }: { data: ChartPoint[] }) {
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={CHART_INITIAL_DIMENSION}
+          >
             <BarChart
               data={chartData}
               margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
@@ -434,7 +447,11 @@ function RiskLineChartBlock({ data }: { data: ChartPoint[] }) {
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={CHART_INITIAL_DIMENSION}
+          >
             <LineChart
               data={chartData}
               margin={{ top: 12, right: 18, left: -18, bottom: 0 }}
