@@ -440,6 +440,7 @@ export default function AdminTopbar({
             <button
               type="button"
               aria-label="Notifications"
+              aria-expanded={notificationsOpen}
               onClick={() => {
                 setNotificationsOpen((current) => {
                   const next = !current;
@@ -452,7 +453,7 @@ export default function AdminTopbar({
                 });
                 setProfileOpen(false);
               }}
-              className="group relative hidden h-12 w-12 items-center justify-center rounded-2xl border border-[#1d2942] bg-[#0d1424] text-[#8ea3c7] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#20d6c7]/60 hover:text-[#20d6c7] hover:shadow-[0_12px_35px_rgba(32,214,199,0.12)] active:translate-y-0 sm:flex"
+              className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-[#1d2942] bg-[#0d1424] text-[#8ea3c7] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#20d6c7]/60 hover:text-[#20d6c7] hover:shadow-[0_12px_35px_rgba(32,214,199,0.12)] active:translate-y-0"
             >
               <Bell
                 size={20}
@@ -467,7 +468,7 @@ export default function AdminTopbar({
             </button>
 
             {notificationsOpen ? (
-              <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-96 overflow-hidden rounded-2xl border border-[#1d2942] bg-[#0d1424]/98 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-[planoraDropdownIn_180ms_ease-out]">
+              <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[calc(100vw-2rem)] max-w-96 overflow-hidden rounded-2xl border border-[#1d2942] bg-[#0d1424]/98 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl animate-[planoraDropdownIn_180ms_ease-out]">
                 <div className="flex items-center justify-between gap-4 border-b border-[#1d2942] px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-white">

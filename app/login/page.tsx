@@ -183,10 +183,12 @@ export default function LoginPage() {
 
             <input
               id="admin-login-identifier"
+              name="username"
               value={emailOrUsername}
               onChange={(event) => setEmailOrUsername(event.target.value)}
               autoComplete="username"
               autoFocus
+              required
               disabled={loading}
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "admin-login-error" : undefined}
@@ -221,10 +223,12 @@ export default function LoginPage() {
 
             <input
               id="admin-login-password"
+              name="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
+              required
               disabled={loading}
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "admin-login-error" : undefined}
