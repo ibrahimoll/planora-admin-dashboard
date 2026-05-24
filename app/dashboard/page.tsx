@@ -313,9 +313,9 @@ function DonutChartBlock({
 
   return (
     <>
-      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20">
+      <div className="relative h-[260px] min-h-[260px] w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/20">
         <div
-          className={`h-full transition ${
+          className={`h-full w-full min-w-0 transition ${
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >
@@ -373,9 +373,9 @@ function BarChartBlock({ data }: { data: ChartPoint[] }) {
 
   return (
     <>
-      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
+      <div className="relative h-[260px] min-h-[260px] w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
         <div
-          className={`h-full transition ${
+          className={`h-full w-full min-w-0 transition ${
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >
@@ -441,9 +441,9 @@ function RiskLineChartBlock({ data }: { data: ChartPoint[] }) {
 
   return (
     <>
-      <div className="relative h-[260px] rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
+      <div className="relative h-[260px] min-h-[260px] w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/20 px-2 pt-4">
         <div
-          className={`h-full transition ${
+          className={`h-full w-full min-w-0 transition ${
             isEmpty ? "blur-[2.5px] opacity-40" : ""
           }`}
         >

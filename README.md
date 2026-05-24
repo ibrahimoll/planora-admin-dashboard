@@ -1,5 +1,45 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Admin Smoke Tests
+
+The Playwright smoke suite is non-destructive. It checks login, dashboard session persistence, notification dropdown layout, logout cleanup, and protected route redirects.
+
+Set these environment variables before running the authenticated tests:
+
+```bash
+export PLANORA_ADMIN_URL=https://planora-pi-inky.vercel.app
+export PLANORA_ADMIN_USERNAME=your-admin-username
+export PLANORA_ADMIN_PASSWORD=your-admin-password
+```
+
+PowerShell:
+
+```powershell
+$env:PLANORA_ADMIN_URL="https://planora-pi-inky.vercel.app"
+$env:PLANORA_ADMIN_USERNAME="your-admin-username"
+$env:PLANORA_ADMIN_PASSWORD="your-admin-password"
+```
+
+If Chromium is not installed for Playwright yet, run:
+
+```bash
+npx playwright install chromium
+```
+
+Run headless smoke tests:
+
+```bash
+npm run test:e2e
+```
+
+Run in a visible browser:
+
+```bash
+npm run test:e2e:headed
+```
+
+The tests do not create, edit, or delete production records.
+
 ## Getting Started
 
 First, run the development server:

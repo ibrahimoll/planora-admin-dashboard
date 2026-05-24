@@ -45,6 +45,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSlowLoginMessage, setShowSlowLoginMessage] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -83,6 +84,20 @@ export default function LoginPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowSlowLoginMessage(true);
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loading]);
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -104,6 +119,7 @@ export default function LoginPage() {
       return;
     }
 
+    setShowSlowLoginMessage(false);
     setLoading(true);
 
     try {
@@ -147,6 +163,7 @@ export default function LoginPage() {
       clearAdminProfile();
       setError(getLoginErrorMessage(loginError));
     } finally {
+      setShowSlowLoginMessage(false);
       setLoading(false);
     }
   }
@@ -279,6 +296,13 @@ export default function LoginPage() {
             </>
           )}
         </button>
+
+        {showSlowLoginMessage ? (
+          <p className="text-center text-xs leading-5 text-[#8ea3c7]">
+            Still signing in. This can take a little longer if the backend is
+            waking up.
+          </p>
+        ) : null}
       </form>
     </AdminAuthShell>
   );
