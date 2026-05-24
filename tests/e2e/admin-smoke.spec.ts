@@ -25,7 +25,9 @@ test.describe("Planora admin smoke", () => {
 
     await page.goto("/login");
 
-    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /welcome back/i }),
+    ).toBeVisible();
 
     const usernameInput = page.locator("#admin-login-identifier");
     await expect(usernameInput).toHaveAttribute("name", "username");
@@ -42,7 +44,7 @@ test.describe("Planora admin smoke", () => {
 
     await page.getByRole("button", { name: /login to dashboard/i }).click();
 
-    await expect(page.getByRole("alert")).toContainText(
+    await expect(page.locator("#admin-login-error")).toContainText(
       "Enter your email/username and password.",
     );
     expect(loginApiCalls).toBe(0);
@@ -68,7 +70,10 @@ test.describe("Planora admin smoke", () => {
 
       await openNotificationDropdown(page, { width: 1440, height: 900 });
 
-      await page.getByRole("button", { name: /^Logout$/ }).last().click();
+      await page
+        .getByRole("button", { name: /^Logout$/ })
+        .last()
+        .click();
       await expect(page).toHaveURL(/\/login(?:[?#].*)?$/);
 
       const storageState = await page.evaluate(() => ({
@@ -114,25 +119,23 @@ async function openNotificationDropdown(
   await expect(button).toBeVisible();
   await button.click();
 
-  await expect
-    .poll(() => getNotificationDropdownBox(page))
-    .not.toBeNull();
+  await expect.poll(() => getNotificationDropdownBox(page)).not.toBeNull();
 
   const box = await getNotificationDropdownBox(page);
   expect(box).not.toBeNull();
   expect(box?.left).toBeGreaterThanOrEqual(0);
   expect(box?.right).toBeLessThanOrEqual(viewport.width);
 
-  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  const scrollWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
   expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
 
   await page.mouse.click(8, 8);
   await expect(button).toHaveAttribute("aria-expanded", "false");
 
   await button.click();
-  await expect
-    .poll(() => getNotificationDropdownBox(page))
-    .not.toBeNull();
+  await expect.poll(() => getNotificationDropdownBox(page)).not.toBeNull();
 
   await page.keyboard.press("Escape");
   await expect(button).toHaveAttribute("aria-expanded", "false");
