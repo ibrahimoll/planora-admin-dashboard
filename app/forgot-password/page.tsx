@@ -154,7 +154,7 @@ export default function ForgotPasswordPage() {
           )}
         </button>
 
-        <div className="flex items-center justify-between gap-4 text-sm">
+        <div className="flex items-center justify-start gap-4 text-sm">
           <Link
             href="/login"
             className="inline-flex items-center gap-2 font-medium text-[#a9bad7] transition hover:text-white"
