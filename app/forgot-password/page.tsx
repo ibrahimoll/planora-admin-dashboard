@@ -124,7 +124,10 @@ export default function ForgotPasswordPage() {
             className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
           >
             <div className="flex items-start gap-3">
-              <MailCheck size={18} className="mt-0.5 shrink-0 text-emerald-200" />
+              <MailCheck
+                size={18}
+                className="mt-0.5 shrink-0 text-emerald-200"
+              />
               <p>{success}</p>
             </div>
           </div>
@@ -158,13 +161,6 @@ export default function ForgotPasswordPage() {
           >
             <ArrowLeft size={16} />
             Back to login
-          </Link>
-
-          <Link
-            href="/reset-password"
-            className="font-medium text-[#20d6c7] transition hover:text-white"
-          >
-            I already have a code
           </Link>
         </div>
       </form>
