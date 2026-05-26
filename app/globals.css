@@ -40,6 +40,20 @@ textarea {
   font: inherit;
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #080d1a inset !important;
+  box-shadow: 0 0 0 1000px #080d1a inset !important;
+  border-color: #1d2942 !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 ::selection {
   background: rgba(20, 184, 166, 0.28);
   color: #ffffff;
@@ -147,7 +161,6 @@ textarea {
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(45, 212, 191, 0.8);
 }
-
 
 .sidebar-nav-scroll {
   scrollbar-width: thin;
