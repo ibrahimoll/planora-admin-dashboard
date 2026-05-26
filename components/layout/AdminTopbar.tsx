@@ -572,15 +572,6 @@ export default function AdminTopbar({
               </div>
             ) : null}
           </div>
-
-          <div className="hidden h-12 items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 md:flex">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-40" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-300" />
-            </span>
-            Verified admin
-          </div>
-
           <div ref={profileRef} className="relative">
             <button
               type="button"
