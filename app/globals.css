@@ -54,6 +54,18 @@ select:-webkit-autofill {
   transition: background-color 9999s ease-in-out 0s;
 }
 
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow:
+    0 0 0 1000px #0a1120 inset,
+    0 0 0 4px rgba(32, 214, 199, 0.08) !important;
+  box-shadow:
+    0 0 0 1000px #0a1120 inset,
+    0 0 0 4px rgba(32, 214, 199, 0.08) !important;
+  border-color: rgba(32, 214, 199, 0.8) !important;
+}
+
 ::selection {
   background: rgba(20, 184, 166, 0.28);
   color: #ffffff;
