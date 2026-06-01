@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -30,7 +32,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
@@ -39,17 +41,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-if (-not (Test-Path ".gitignore")) {
-  New-Item -ItemType File -Path ".gitignore" | Out-Null
-}
-
-$lines = Get-Content ".gitignore" -ErrorAction SilentlyContinue
-
-if ($lines -notcontains "test-results/") {
-  Add-Content ".gitignore" "test-results/"
-}
-
-if ($lines -notcontains "playwright-report/") {
-  Add-Content ".gitignore" "playwright-report/"
-}
