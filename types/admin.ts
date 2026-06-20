@@ -213,10 +213,26 @@ export type AdminTaskSummary = {
   creator: AdminTaskUser;
 };
 
+export type AdminSubtask = {
+  subtask_id: number;
+  task_id: number;
+  created_by: number;
+  title: string;
+  is_completed: boolean;
+  status: "todo" | "completed";
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AdminTaskDetail = AdminTaskSummary & {
   description: string | null;
   comments_count: number;
   attachments_count: number;
+  subtasks: AdminSubtask[];
+  subtask_count: number;
+  completed_subtask_count: number;
+  progress_percentage: number;
 };
 
 export type AdminTaskActionResponse = {
