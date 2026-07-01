@@ -10,6 +10,7 @@ import {
   FolderKanban,
   Grid2X2,
   ScrollText,
+  Send,
   Settings,
   ShieldCheck,
   Users,
@@ -53,6 +54,11 @@ const navItems = [
     label: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
+  },
+  {
+    label: "Send Report",
+    href: "/dashboard/send-report",
+    icon: Send,
   },
   {
     label: "Notifications",
