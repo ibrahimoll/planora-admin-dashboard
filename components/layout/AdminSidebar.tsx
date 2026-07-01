@@ -9,6 +9,7 @@ import {
   CheckSquare,
   FolderKanban,
   Grid2X2,
+  Inbox,
   ScrollText,
   Send,
   Settings,
@@ -54,6 +55,11 @@ const navItems = [
     label: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
+  },
+  {
+    label: "Report Requests",
+    href: "/dashboard/report-requests",
+    icon: Inbox,
   },
   {
     label: "Send Report",
