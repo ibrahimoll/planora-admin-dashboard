@@ -130,7 +130,7 @@ export default function ReportRequestsPage() {
   }
 
   async function rejectRequest(request: ReportRequestItem) {
-    const reason = window.prompt("Reason for rejecting this report request?") ?? "";
+    const reason = window.prompt("Reason for rejecting this report request?");
     if (reason === null) return;
 
     setActionId(request.report_request_id);
