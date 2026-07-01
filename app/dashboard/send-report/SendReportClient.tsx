@@ -91,7 +91,7 @@ export function SendReportClient() {
       setNote("");
       setAutoFilled(false);
     } catch (requestError) {
-      setError(getErrorMessage(requestError, "Could not send this report."));
+      setError(getErrorMessage(requestError, "Could not notify this user."));
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ export function SendReportClient() {
             {autoFilled ? (
               <div className="flex items-start gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 px-4 py-3 text-sm text-teal-100">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Request details are filled. Add your note, then send.</span>
+                <span>Request details are filled. Add your note, then notify the user.</span>
               </div>
             ) : null}
 
@@ -117,7 +117,7 @@ export function SendReportClient() {
 
             {success ? (
               <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                Report sent to {success.address} for {success.project_title}.
+                Report marked ready. {success.address} was notified to open Planora and view it in the app.
               </div>
             ) : null}
 
@@ -161,7 +161,7 @@ export function SendReportClient() {
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={5}
-                placeholder="Write the note that will be included with the report."
+                placeholder="Write the note that will be included with the ready-report notification."
                 className="w-full resize-none rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400/60"
               />
             </label>
@@ -172,7 +172,7 @@ export function SendReportClient() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-teal-500/30 bg-teal-500/15 px-5 py-3 text-sm font-bold text-teal-100 transition hover:border-teal-400/50 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
             >
               {loading ? <RefreshCw size={17} className="animate-spin" /> : <Send size={17} />}
-              {loading ? "Sending report..." : "Generate & Send Report"}
+              {loading ? "Marking report ready..." : "Mark Ready & Notify User"}
             </button>
           </form>
         </GlassCard>
@@ -182,7 +182,7 @@ export function SendReportClient() {
         <GlassCard className="p-5">
           <div className="flex gap-3 text-sm leading-6 text-slate-300">
             <Mail className="mt-0.5 h-5 w-5 shrink-0 text-teal-300" />
-            <p>The recipient gets a clean report email. The backend also saves report export history.</p>
+            <p>The email only tells the user that the report is ready. The report details are viewed inside the Planora mobile app.</p>
           </div>
         </GlassCard>
       </Reveal>
