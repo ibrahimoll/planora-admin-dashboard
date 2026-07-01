@@ -36,6 +36,17 @@ function isActiveAdmin(user: CurrentUser) {
   );
 }
 
+function getSafeNextPath() {
+  if (typeof window === "undefined") return "/dashboard";
+
+  const value = new URLSearchParams(window.location.search).get("next") ?? "";
+
+  if (!value.startsWith("/dashboard")) return "/dashboard";
+  if (value.startsWith("//")) return "/dashboard";
+
+  return value;
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -63,7 +74,7 @@ export default function LoginPage() {
 
         if (isActiveAdmin(response.data)) {
           saveAdminProfile(response.data);
-          router.replace("/dashboard");
+          router.replace(getSafeNextPath());
           return;
         }
 
@@ -85,9 +96,7 @@ export default function LoginPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!loading) {
-      return;
-    }
+    if (!loading) return;
 
     const timeoutId = window.setTimeout(() => {
       setShowSlowLoginMessage(true);
@@ -127,15 +136,11 @@ export default function LoginPage() {
       formData.append("username", identifier);
       formData.append("password", password);
 
-      const loginResponse = await api.post<LoginResponse>(
-        "/auth/login",
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
+      const loginResponse = await api.post<LoginResponse>("/auth/login", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-      );
+      });
 
       saveAdminToken(loginResponse.data.access_token);
 
@@ -157,7 +162,7 @@ export default function LoginPage() {
 
       saveAdminProfile(meResponse.data);
       void registerCurrentBrowserForPush();
-      router.replace("/dashboard");
+      router.replace(getSafeNextPath());
     } catch (loginError) {
       clearAdminToken();
       clearAdminProfile();
@@ -299,8 +304,7 @@ export default function LoginPage() {
 
         {showSlowLoginMessage ? (
           <p className="text-center text-xs leading-5 text-[#8ea3c7]">
-            Still signing in. This can take a little longer if the backend is
-            waking up.
+            Still signing in. This can take a little longer if the backend is waking up.
           </p>
         ) : null}
       </form>
