@@ -840,6 +840,64 @@ export default function AdminTasksPage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/45 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                      <ListChecks size={14} />
+                      Checklist
+                    </p>
+                    <span className="text-xs font-medium text-teal-200">
+                      {selectedTask.completed_subtask_count}/
+                      {selectedTask.subtask_count} done
+                    </span>
+                  </div>
+
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-teal-400 transition-[width]"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(0, selectedTask.progress_percentage),
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  {selectedTask.subtasks.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      No subtasks added.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {selectedTask.subtasks.map((subtask) => (
+                        <div
+                          key={subtask.subtask_id}
+                          className="flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2.5"
+                        >
+                          {subtask.is_completed ? (
+                            <CheckCircle2
+                              size={16}
+                              className="mt-0.5 shrink-0 text-emerald-300"
+                            />
+                          ) : (
+                            <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-slate-600" />
+                          )}
+                          <span
+                            className={`text-sm ${
+                              subtask.is_completed
+                                ? "text-slate-500 line-through"
+                                : "text-slate-200"
+                            }`}
+                          >
+                            {subtask.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 border-t border-slate-800 pt-5">
