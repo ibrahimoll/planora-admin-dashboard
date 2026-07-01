@@ -111,7 +111,7 @@ export default function ReportRequestsPage() {
     void loadRequests();
   }, [loadRequests]);
 
-  async function markReady(request: ReportRequestItem) {
+  async function sendToMobile(request: ReportRequestItem) {
     setActionId(request.report_request_id);
     setError("");
     setNotice("");
@@ -120,10 +120,10 @@ export default function ReportRequestsPage() {
       await api.post(`/reports/admin/requests/${request.report_request_id}/ready`, {
         note: noteDrafts[request.report_request_id]?.trim() || null,
       });
-      setNotice("Report marked ready. The user was notified to open Planora.");
+      setNotice("Report sent to mobile. The user can open Planora and view it inside the project Reports card.");
       await loadRequests();
     } catch (requestError) {
-      setError(getErrorMessage(requestError, "Could not mark this report ready."));
+      setError(getErrorMessage(requestError, "Could not send this report to mobile."));
     } finally {
       setActionId(null);
     }
@@ -161,7 +161,7 @@ export default function ReportRequestsPage() {
             Report Requests Center
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-            Review pending user requests, mark reports ready, or reject requests. Users see the status inside the mobile app.
+            Review pending user requests, send approved reports to the mobile app, or reject requests. Users see the status inside the mobile app.
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export default function ReportRequestsPage() {
         </GlassCard>
         <GlassCard className="p-5 md:col-span-2">
           <p className="text-sm leading-6 text-slate-300">
-            The ready action generates a report export, notifies the user by email, and creates an in-app notification. The full report stays inside Planora.
+            <span className="font-semibold text-white">Send to Mobile</span> generates a report export, marks the request ready, emails the user only a ready notice, and creates an in-app notification. The full report stays inside Planora.
           </p>
         </GlassCard>
       </div>
@@ -289,12 +289,12 @@ export default function ReportRequestsPage() {
                   {request.status === "pending" ? (
                     <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
                       <button
-                        onClick={() => markReady(request)}
+                        onClick={() => sendToMobile(request)}
                         disabled={actionId === request.report_request_id}
                         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-60"
                       >
                         {actionId === request.report_request_id ? <RefreshCw size={17} className="animate-spin" /> : <Send size={17} />}
-                        Mark Ready
+                        {actionId === request.report_request_id ? "Sending to mobile..." : "Send to Mobile"}
                       </button>
                       <button
                         onClick={() => rejectRequest(request)}
